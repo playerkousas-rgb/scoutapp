@@ -1,0 +1,922 @@
+"""
+Store — the one thing the rest of the app talks to.
+
+It wraps a driver (local JSON or Google Sheets) and adds the parts that are the
+same in both: settings merged over defaults, cached per-user stats, file
+uploads, and the demo seeder.
+"""
+from __future__ import annotations
+
+import json
+import os
+from typing import Any, Callable
+
+from .drivers.local import LocalDriver
+from .drivers.sheets import SheetsDriver
+from .schema import (
+    COLLECTION_ORDER, DEFAULT_SETTINGS, DEMO_PASSWORDS, SEED_BADGES,
+    SEED_REWARDS, SEED_SUGGESTIONS,
+)
+from .util import hash_password, new_id, now_iso, parse_time, today_iso
+from .content import item4_meta, item4_questions, member_badge_guide
+
+
+
+def _unescape_raw_newlines(text: str) -> str:
+    """Escape newlines/tabs that ended up *inside* JSON strings.
+
+    Copying a key through some editors turns the private key's \n escapes into
+    real line breaks, which is invalid JSON. Walk the text, and while inside a
+    string literal, escape them back.
+    """
+    out: list[str] = []
+    in_string = False
+    escaped = False
+    for character in text:
+        if escaped:
+            out.append(character)
+            escaped = False
+            continue
+        if character == "\\":
+            out.append(character)
+            escaped = True
+            continue
+        if character == '"':
+            in_string = not in_string
+            out.append(character)
+            continue
+        if in_string and character == "\n":
+            out.append("\\n")
+            continue
+        if in_string and character == "\r":
+            continue
+        if in_string and character == "\t":
+            out.append("\\t")
+            continue
+        out.append(character)
+    return "".join(out)
+
+
+def parse_service_account(raw: str) -> dict:
+    """Parse the key the way it actually arrives, not the way it should."""
+    text = str(raw or "").strip().lstrip("\ufeff")
+    if not text:
+        raise ValueError("GOOGLE_SERVICE_ACCOUNT_JSON 是空的")
+    if text.startswith('"') and text.endswith('"') and len(text) > 2:
+        inner = text[1:-1].strip()                      # 整段被引號包住
+        try:
+            json.loads(inner)
+            text = inner
+        except ValueError:
+            unescaped = inner.replace('\\"', '"').replace("\\\\", "\\")
+            text = unescaped
+    try:
+        return json.loads(text)
+    except ValueError as first:
+        try:
+            return json.loads(_unescape_raw_newlines(text))
+        except ValueError:
+            raise first from None                       # 保留原本的錯誤訊息（給 advice 判斷）
+
+
+def _sheets_driver(env: dict):
+    """Build the Google Sheets driver from the environment."""
+    account: dict = {}
+    path = env.get("GOOGLE_SERVICE_ACCOUNT_FILE")
+    if path and os.path.exists(path):
+        with open(path, encoding="utf-8") as handle:
+            account = json.load(handle)
+    elif env.get("GOOGLE_SERVICE_ACCOUNT_JSON"):
+        account = parse_service_account(env["GOOGLE_SERVICE_ACCOUNT_JSON"])
+    if not isinstance(account, dict) or not account.get("client_email"):
+        raise ValueError("服務帳戶金鑰不完整：GOOGLE_SERVICE_ACCOUNT_JSON 要是整份 JSON 檔的內容")
+    if not (env.get("GOOGLE_SHEET_ID") or "").strip():
+        raise ValueError("未設定 GOOGLE_SHEET_ID")
+    sheet_id = env["GOOGLE_SHEET_ID"].strip()
+    if "/" in sheet_id or "docs.google.com" in sheet_id or " " in sheet_id:
+        raise ValueError("GOOGLE_SHEET_ID 是一整條網址；只要 /d/ 與 /edit 中間那一小段")
+    return SheetsDriver(
+        spreadsheet_id=sheet_id,
+        service_account=account,
+        drive_folder_id=env.get("GOOGLE_DRIVE_FOLDER_ID", ""),
+    )
+
+
+def _probe(driver) -> None:
+    """Prove the key, the ID and the sharing before the app relies on them.
+
+    Tabs missing from a brand-new Sheet are created here (the app does this on
+    every boot anyway). A bare 「Unable to parse range」 still counts as
+    reachable — it only means the tab was not there yet.
+    """
+    driver.ensure_schema()
+    try:
+        driver.list("badges")
+    except Exception as exc:                    # noqa: BLE001
+        if "Unable to parse range" in str(exc):
+            return
+        raise
+
+
+def storage_advice(error: str) -> tuple[str, str]:
+    """(中文說明, 中文修正) — 把 Google／Python 的錯誤翻譯成人看的兩句。"""
+    text = str(error or "")
+    if not text.strip():
+        return ("", "")                      # 沒有錯誤就不要嚇人
+    if "ModuleNotFoundError" in text or "No module named" in text:
+        missing = text.split("'")[1] if "'" in text else "某個套件"
+        return (f"部署缺少套件（{missing}），所以連不上 Google。",
+                "requirements.txt 未包含這個套件；部署最新版本（程式已補上 google-auth）後即可。")
+    if "deserialize" in text.lower() or "Could not parse" in text or "InvalidKey" in text:
+        return ("服務帳戶金鑰的 private_key 不完整（貼上時被截斷，或前後加了引號）。",
+                "在 Vercel 重新貼上整份 JSON 檔內容：由 { 到 } 都要有，private_key 整段（含 -----BEGIN…-----）不可換行錯誤，前後不要加引號，存檔後 Redeploy。")
+    if "JSONDecodeError" in text or "服務帳戶金鑰不完整" in text:
+        return ("服務帳戶金鑰（GOOGLE_SERVICE_ACCOUNT_JSON）不是有效的 JSON。",
+                "在 Vercel 重新貼上整份 JSON 檔內容，由 { 到 } 都要有，前後不要加引號，存檔後 Redeploy。"
+                "（可先在瀏覽器打開 tools/check-service-account.html 貼上檢查一次）")
+    if "GOOGLE_SHEET_ID" in text:
+        return ("未設定 GOOGLE_SHEET_ID。",
+                "把試算表網址 /d/ 與 /edit 中間那一段貼進 Vercel 的 GOOGLE_SHEET_ID，存檔後 Redeploy。")
+    if ("has not been used in project" in text or "SERVICE_DISABLED" in text
+            or "is disabled" in text or "accessNotConfigured" in text):
+        api = "Google Drive API" if "drive" in text.lower() else "Google Sheets API"
+        return (f"{api} 還未在 Google Cloud 專案啟用。",
+                "到 console.cloud.google.com → 左邊「API 和服務 → 程式庫」，搜尋 Google Sheets API 與 "
+                "Google Drive API，各按一次「啟用」（上面的錯誤訊息裡也有直接連結）。啟用後等一兩分鐘，"
+                "回到 Vercel Redeploy 一次即可。")
+    if "Unable to parse range" in text:
+        return ("試算表已連上，但分頁還未建立（程式會自動補上）。",
+                "重新開啟平台一次即可；程式在第一次連上時會建立 15 個分頁。"
+                "若持續出現，到 Vercel → Deployments → Redeploy 部署最新版本。")
+    if "Invalid spreadsheet id" in text or "invalid spreadsheet id" in text:
+        return ("GOOGLE_SHEET_ID 不完整或格式不對。",
+                "由試算表網址 /d/ 與 /edit 中間複製完整那一段（通常 44 個字元，只會有英文字母、數字、- 和 _），"
+                "貼回 Vercel 的 GOOGLE_SHEET_ID，存檔後 Redeploy。")
+    if "400" in text:
+        return ("Google 回應 400：請求格式有問題，最常見是 GOOGLE_SHEET_ID 貼得不完整。",
+                "重新複製試算表網址 /d/ 與 /edit 中間那一段，貼回 Vercel 的 GOOGLE_SHEET_ID，存檔後 Redeploy。")
+    if "insufficient" in text.lower() and "scope" in text.lower():
+        return ("服務帳戶金鑰的授權範圍不足。",
+                "重新下載一次服務帳戶金鑰（Google Cloud → IAM 與管理 → 服務帳戶 → 金鑰 → JSON），"
+                "重新貼上並 Redeploy。")
+    if "403" in text:
+        return ("Google 拒絕存取：試算表（或資料夾）未共用給服務帳戶電郵。",
+                "打開試算表 → 共用 → 加入服務帳戶電郵（…@….iam.gserviceaccount.com），權限「編輯者」。")
+    if "404" in text:
+        return ("找不到那張試算表：GOOGLE_SHEET_ID 可能不是這份檔案的 ID。",
+                "重新複製試算表網址 /d/ 與 /edit 中間那一段，貼回 GOOGLE_SHEET_ID，存檔後 Redeploy。")
+    if "401" in text or "invalid_grant" in text or "credentials" in text.lower():
+        return ("服務帳戶金鑰被拒：金鑰可能已被刪除或複製不完整。",
+                "到 Google Cloud → IAM 與管理 → 服務帳戶 → 金鑰，建立新的 JSON 金鑰並重新貼上。")
+    return ("連不上 Google 試算表：" + text[:160],
+            "檢查 GOOGLE_SHEET_ID、GOOGLE_SERVICE_ACCOUNT_JSON 與共用設定，然後 Redeploy。")
+
+
+def storage_advice_en(error: str) -> tuple[str, str]:
+    """(English reason, English fix) — the same branches as `storage_advice`.
+
+    Kept beside it rather than in the template, so a new failure mode is added
+    once in each language and the two can be read side by side.
+    """
+    text = str(error or "")
+    if not text.strip():
+        return ("", "")
+    if "ModuleNotFoundError" in text or "No module named" in text:
+        missing = text.split("'")[1] if "'" in text else "a package"
+        return (f"The deployment is missing a package ({missing}), so it cannot reach Google.",
+                "requirements.txt does not list it; deploy the latest version (google-auth is included now).")
+    if "deserialize" in text.lower() or "Could not parse" in text or "InvalidKey" in text:
+        return ("The service account's private_key is incomplete (cut short when pasting, or wrapped in quotes).",
+                "Paste the whole JSON file into Vercel again — from { to } — with the entire private_key "
+                "(including -----BEGIN…-----), no stray line breaks, no surrounding quotes, then Redeploy.")
+    if "JSONDecodeError" in text or "服務帳戶金鑰不完整" in text:
+        return ("GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON.",
+                "Paste the whole JSON file into Vercel again, from { to }, with no surrounding quotes, then Redeploy. "
+                "(You can check it first in tools/check-service-account.html.)")
+    if "GOOGLE_SHEET_ID" in text:
+        return ("GOOGLE_SHEET_ID is not set.",
+                "Paste the part of the sheet URL between /d/ and /edit into GOOGLE_SHEET_ID in Vercel, then Redeploy.")
+    if ("has not been used in project" in text or "SERVICE_DISABLED" in text
+            or "is disabled" in text or "accessNotConfigured" in text):
+        api = "Google Drive API" if "drive" in text.lower() else "Google Sheets API"
+        return (f"{api} is not enabled in the Google Cloud project.",
+                "Go to console.cloud.google.com → APIs & Services → Library, search for Google Sheets API and "
+                "Google Drive API and press Enable on each (the error message above has direct links too). "
+                "Wait a minute or two, then Redeploy in Vercel.")
+    if "Unable to parse range" in text:
+        return ("The sheet is reachable but its tabs are not built yet (the app creates them).",
+                "Open the platform once more; it builds the 15 tabs the first time it connects. "
+                "If it keeps happening, deploy the latest version from Vercel → Deployments → Redeploy.")
+    if "Invalid spreadsheet id" in text or "invalid spreadsheet id" in text:
+        return ("GOOGLE_SHEET_ID is incomplete or malformed.",
+                "Copy the whole part between /d/ and /edit in the sheet URL (about 44 characters: letters, digits, - and _), "
+                "paste it back into GOOGLE_SHEET_ID, then Redeploy.")
+    if "400" in text:
+        return ("Google answered 400: the request is malformed — usually an incomplete GOOGLE_SHEET_ID.",
+                "Copy the part between /d/ and /edit again, paste it into GOOGLE_SHEET_ID, then Redeploy.")
+    if "insufficient" in text.lower() and "scope" in text.lower():
+        return ("The service account key has insufficient scopes.",
+                "Download the key again (Google Cloud → IAM & Admin → Service Accounts → Keys → JSON), "
+                "paste it in and Redeploy.")
+    if "403" in text:
+        return ("Google refused access: the sheet (or Drive folder) is not shared with the service account.",
+                "Open the sheet → Share → add the service-account email (…@….iam.gserviceaccount.com) as Editor.")
+    if "404" in text:
+        return ("That sheet was not found: GOOGLE_SHEET_ID may not be this file's ID.",
+                "Copy the part between /d/ and /edit again, paste it into GOOGLE_SHEET_ID, then Redeploy.")
+    if "401" in text or "invalid_grant" in text or "credentials" in text.lower():
+        return ("The service account key was refused: it may have been deleted or copied incompletely.",
+                "Go to Google Cloud → IAM & Admin → Service Accounts → Keys, create a new JSON key and paste it in.")
+    return ("Cannot reach the Google Sheet: " + text[:160],
+            "Check GOOGLE_SHEET_ID, GOOGLE_SERVICE_ACCOUNT_JSON and the sharing settings, then Redeploy.")
+
+
+class Store:
+    def __init__(self, driver, config: dict):
+        self.driver = driver
+        self.config = config
+        self._settings_cache: dict | None = None
+
+    # --- construction -------------------------------------------------------
+    @classmethod
+    def from_env(cls, env: dict | None = None) -> "Store":
+        env = env or os.environ
+        driver_name = (env.get("DATA_DRIVER") or "local").lower()
+        config = {
+            # 正式預設：示範帳戶與示範資料都關上 —— 第一次開啟會看到
+            # 「建立第一位領袖」。要示範帳戶，明確設 DEMO_LOGIN=true /
+            # SEED_DEMO=true（離線試玩檔與檢查腳本會自行設定）。
+            "demo_login": (env.get("DEMO_LOGIN") or "false").lower() == "true",
+            "seed_demo": (env.get("SEED_DEMO") or "false").lower() == "true",
+            "data_dir": env.get("DATA_DIR") or os.path.join(os.getcwd(), "data"),
+        }
+        config["storage_error"] = ""
+        if driver_name == "sheets":
+            try:
+                driver = _sheets_driver(env)
+                _probe(driver)                      # read one tab: proves key + id + sharing
+            except Exception as exc:                # noqa: BLE001 — never let config kill the site
+                config["storage_error"] = f"{type(exc).__name__}: {exc}"
+                driver = LocalDriver(config["data_dir"])
+        else:
+            driver = LocalDriver(config["data_dir"])
+        store = cls(driver=driver, config=config)
+        store.driver.ensure_schema()
+        if config["seed_demo"] and store.needs_setup():
+            store.seed_demo()
+        else:
+            # 正式部署：空資料庫第一次連上時建立獎章目錄；之後只補缺少的項目，
+            # 任何部署、任何重啟都不會改動已有的資料。失敗也不可以讓網站打不開。
+            try:
+                store.settle_catalog()              # 先合併重複（例如首次啟動撞在一起）
+                store.ensure_catalog()              # 再補上缺少的項目
+                store.refresh_game_copy()           # 遊戲改了完成方式：換掉未改動過的舊說明
+                store.upgrade_flag_game()            # 第 7 項由打勾升級成旗桿遊戲，並接上第 4 區
+                store.refresh_flag_story()           # 舊的「24 分合格」說明換成故事玩法
+            except Exception as exc:                # noqa: BLE001
+                config["catalog_error"] = f"{type(exc).__name__}: {exc}"
+        return store
+
+    # --- pass-throughs ------------------------------------------------------
+    def list(self, collection: str) -> list[dict]:
+        return self.driver.list(collection)
+
+    def get(self, collection: str, key: Any) -> dict | None:
+        return self.driver.get(collection, key)
+
+    def insert(self, collection: str, record: dict) -> dict:
+        return self.driver.insert(collection, record)
+
+    def insert_many(self, collection: str, records: list[dict]) -> list[dict]:
+        """One round trip for a whole block of rows (when the driver can)."""
+        writer = getattr(self.driver, "append_many", None)
+        if callable(writer):
+            return writer(collection, records)
+        return [self.driver.insert(collection, row) for row in records]
+
+    def restore_codes(self, codes) -> list[str]:
+        """清走「已刪除」記號，讓內建項目可以再被補回。回傳真正清走的代碼。"""
+        wanted = {str(code) for code in codes if str(code or "").strip()}
+        current = [str(item) for item in (self.settings().get("catalog_removed") or [])]
+        kept = [code for code in current if code not in wanted]
+        cleared = [code for code in current if code in wanted]
+        if cleared:
+            self.save_setting("catalog_removed", kept)
+        return cleared
+
+    def orphan_task_ids(self, badge_id: str = "") -> list[str]:
+        """童軍進度仍然指着、但任務列已不存在的 id。
+
+        刪除後重建時沿用這些 id，童軍已完成的記錄才不會消失。
+        """
+        known = {str(row.get("id")) for row in self.list("tasks")}
+        found: list[str] = []
+        for row in self.list("progress_records"):
+            if badge_id and str(row.get("badge_id")) != str(badge_id):
+                continue
+            task_id = str(row.get("task_id") or "")
+            if task_id and task_id not in known and task_id not in found:
+                found.append(task_id)
+        return found
+
+    def remember_removed(self, code: str) -> None:
+        """領袖刪除的目錄項目要記住 —— 部署新版本時不可自動重建。"""
+        code = str(code or "").strip()
+        if not code:
+            return
+        current = [str(item) for item in (self.settings().get("catalog_removed") or [])]
+        if code not in current:
+            current.append(code)
+            self.save_setting("catalog_removed", current)
+
+    def update(self, collection: str, key: Any, patch: dict) -> dict | None:
+        return self.driver.update(collection, key, patch)
+
+    def remove(self, collection: str, key: Any) -> bool:
+        return self.driver.remove(collection, key)
+
+    def remove_where(self, collection: str, predicate: Callable[[dict], bool]) -> int:
+        return self.driver.remove_where(collection, predicate)
+
+    def upload_file(self, *, name: str, mime_type: str, data: bytes) -> dict:
+        return self.driver.upload_file(name=name, mime_type=mime_type, data=data)
+
+    # --- settings -----------------------------------------------------------
+    def settings(self, force: bool = False) -> dict:
+        if self._settings_cache is not None and not force:
+            return self._settings_cache
+        merged = json.loads(json.dumps(DEFAULT_SETTINGS))
+        for row in self.driver.list("settings"):
+            key = row.get("key")
+            if not key:
+                continue
+            value = row.get("value_json")
+            if isinstance(value, str) and value.strip():
+                try:
+                    value = json.loads(value)
+                except json.JSONDecodeError:
+                    pass
+            merged[key] = value
+        merged["feature_flags"] = {**DEFAULT_SETTINGS["feature_flags"], **(merged.get("feature_flags") or {})}
+        self._settings_cache = merged
+        return merged
+
+    def settings_cached(self) -> dict:
+        """Never hits the network — safe for templates on every request."""
+        return self._settings_cache if self._settings_cache is not None else self.settings()
+
+    def save_setting(self, key: str, value) -> dict:
+        existing = self.driver.get("settings", key)
+        if existing:
+            self.driver.update("settings", key, {"value_json": json.dumps(value, ensure_ascii=False), "updated_at": now_iso()})
+        else:
+            self.driver.insert("settings", {
+                "key": key, "value_json": json.dumps(value, ensure_ascii=False), "updated_at": now_iso(),
+            })
+        self._settings_cache = None
+        return self.settings(force=True)
+
+    # --- stats --------------------------------------------------------------
+    def stats_for(self, user_id: str) -> dict:
+        stats = self.driver.get("stats", user_id)
+        if not stats:
+            stats = self.driver.insert("stats", {
+                "user_id": user_id,
+                "points_balance": 0, "tasks_done": 0, "badges_done": 0,
+                "streak_current": 0, "streak_best": 0, "last_active_date": "",
+                "updated_at": now_iso(),
+            })
+        return stats
+
+    def rebuild_stats(self, user_id: str) -> dict:
+        """Recomputes a scout's cached numbers from the ledger + records.
+
+        The ledger is the source of truth, so this can never disagree with it —
+        the same invariant the Node build enforces in its tests.
+        """
+        ledger = [row for row in self.list("points_ledger") if row.get("user_id") == user_id]
+        records = [row for row in self.list("progress_records") if row.get("user_id") == user_id]
+        awards = [row for row in self.list("badge_awards") if row.get("user_id") == user_id]
+        balance = sum(int(float(row.get("points_delta") or 0)) for row in ledger)
+        done = [row for row in records if row.get("status") == "completed"]
+        days = sorted({str(row.get("decided_at") or row.get("submitted_at") or "")[:10] for row in done})
+        streak_current, streak_best = 0, 0
+        if days:
+            run = 1
+            for previous, current in zip(days, days[1:]):
+                from .util import days_between
+
+                run = run + 1 if days_between(previous, current) == 1 else 1
+                streak_best = max(streak_best, run)
+            streak_best = max(streak_best, 1)
+            from .util import days_between
+
+            streak_current = run if days_between(days[-1], today_iso()) <= 1 else 0
+        patch = {
+            "points_balance": max(0, balance),
+            "tasks_done": len(done),
+            "badges_done": len(awards),
+            "streak_current": streak_current,
+            "streak_best": streak_best,
+            "last_active_date": days[-1] if days else "",
+            "updated_at": now_iso(),
+        }
+        return self.update("stats", user_id, patch) or patch
+
+    # --- first run ----------------------------------------------------------
+    def needs_setup(self) -> bool:
+        return not any(row.get("role") == "leader" for row in self.list("users"))
+
+    def create_first_leader(self, *, username: str, password: str, display_name_zh: str,
+                            display_name_en: str = "", unit: str = "") -> dict:
+        hashed, salt = hash_password(password)
+        leader = self.insert("users", {
+            "role": "leader", "username": username.strip().lower(),
+            "password_hash": hashed, "password_salt": salt,
+            "display_name_zh": display_name_zh or username,
+            "display_name_en": display_name_en or display_name_zh or username,
+            "email": "", "scout_no": "", "section": "leader", "patrol": "",
+            "unit": unit, "avatar": "🧭", "status": "active",
+            "must_change_password": False, "show_on_leaderboard": False,
+            "created_at": now_iso(), "created_by": "setup",
+        })
+        self.stats_for(leader["id"])
+        if unit:
+            self.save_setting("unit_name_zh", unit)
+        return leader
+
+    # --- the platform's own content -----------------------------------------
+    CATALOG_LEASE_SECONDS = 120
+
+    def claim_catalog_boot(self) -> bool:
+        """只有一個啟動可以建立目錄 —— 快速連開兩次也只是一次。
+
+        記在設定 `catalog_boot`。超過兩分鐘的記錄會被接管，所以中途中斷的
+        啟動不會永遠擋住建立。
+        """
+        import time as _time
+
+        claimed = str(self.settings().get("catalog_boot") or "")
+        if claimed:
+            age = _time.time() - (parse_time(claimed) or 0)
+            if 0 <= age < self.CATALOG_LEASE_SECONDS:
+                return False
+        self.save_setting("catalog_boot", now_iso())
+        return True                                 # 記錄只能減低撞在一起的機會，
+        #                                             真正的保險是 settle_catalog()
+
+    def settle_catalog(self) -> dict:
+        """合併重複的內建獎章／任務（併發首次啟動可能各寫一次）。
+
+        只處理程式內建的代碼（SC-01…／M01…／T-…）：同一代碼只留最先出現的一列，
+        刪走其餘重複，最後把內建任務指向保留的那個獎章。領袖自己新增的內容
+        （代碼空白或不在名單內）一律不動；健康的話一次寫入都不會發生。
+        """
+        badge_codes = {str(badge["code"]) for badge in SEED_BADGES}
+        task_badge = {str(task["code"]): str(badge["code"])
+                      for badge in SEED_BADGES for task in badge["tasks"]}
+        merged = {"badges": 0, "tasks": 0}
+
+        seen_tasks: set[str] = set()
+        for row in self.list("tasks"):
+            code = str(row.get("code") or "")
+            if code not in task_badge:
+                continue
+            if code in seen_tasks:
+                self.remove("tasks", row["id"])
+                merged["tasks"] += 1
+            else:
+                seen_tasks.add(code)
+
+        kept: dict[str, dict] = {}
+        for row in self.list("badges"):
+            code = str(row.get("code") or "")
+            if code not in badge_codes:
+                continue
+            if code in kept:
+                self.remove("badges", row["id"])
+                merged["badges"] += 1
+            else:
+                kept[code] = row
+
+        for row in self.list("tasks"):
+            badge_code = task_badge.get(str(row.get("code") or ""))
+            target = kept.get(badge_code or "")
+            if target and str(row.get("badge_id")) != str(target["id"]):
+                self.update("tasks", row["id"], {"badge_id": target["id"]})
+        return merged
+
+    # 遊戲 2、3 的完成方式改了（不再由童軍輸入領袖代碼，改在領袖帳戶批准）。
+    # 說明文字原本跟隨第一次建立的種子寫入資料庫，所以舊部署仍會說「輸入代碼」。
+    # 只有「仍是原封不動的舊版」那一句才會被換掉；領袖改過的文字一個字都不碰。
+    GAME_COPY_REFRESH = {
+        "M05": {
+            "instruction_zh": (
+                "明瞭及接納童軍誓詞、規律和銘言。第二個區域只有這一個遊戲：先讀教學牌，"
+                "再把木板按正確次序鋪成橋。三關全部鋪好即完成第 5 項，無須另做考核；"
+                "宣誓時領袖仍會聽你親口講出誓詞、規律和銘言。",
+            ),
+            "instruction_en": (
+                "Understand and accept the Scout Promise, Law and Motto. The second area's "
+                "only game: read each teaching card, then lay the planks across the river in "
+                "the right order. Laying all three stages completes item 5 — there is no "
+                "separate paper. Your leader will still hear you say them aloud when you are "
+                "invested.",
+            ),
+        },
+        "M06": {
+            "instruction_zh": (
+                "認識宣誓時應有之童軍禮儀，以及隊列之基本動作。第三個區域只有這一個遊戲，"
+                "分兩節：第 1 節在斷崖學七類集隊手號與領袖位置；第 2 節在閱兵場分三階段學步操"
+                "動作——立正、稍息、敬禮；四方向移步與向左、向右、後轉；原地踏步、齊步、停步、"
+                "看齊。每階段先翻卡學口令、打數和動作要點，再看動作限時選出正確口令。全部通過後"
+                "找領袖親身考核；考核通過，輸入領袖代碼即完成第 6 項。",
+            ),
+            "instruction_en": (
+                "Know the Scout customs for the investiture ceremony and the basic drill "
+                "movements. The third area's only game has two sections: on the cliff, learn "
+                "the seven fall-in hand signs and where the leader stands; then, on the parade "
+                "ground, learn drill movements in three stages — alert, stand at ease and "
+                "salute; pacing in four directions with left, right and about turns; and mark "
+                "time, quick march, halt and dressing. In every stage, study the command, count "
+                "and key points on the cards first, then watch each movement and choose its "
+                "command inside the count. Then perform them for a leader; the leader's code "
+                "completes item 6.",
+            ),
+        },
+        "M07": {
+            "instruction_zh": (
+                "能辨認中華人民共和國國旗和國徽，並能說明其含意。第四個區域只有這一個遊戲："
+                "認旗徽、點開發光的部分、把旗拖上旗桿、填國歌、最後把國旗升到桿頂。"
+                "30 題，24 分合格，一次完成第 7 至 10 項。",
+            ),
+            "instruction_en": (
+                "Recognise the national flag and emblem of the PRC and explain their meaning. "
+                "The fourth area's only game: name the flags, tap the glowing parts, drag each "
+                "flag onto its pole, fill the anthem, then raise the national flag to the top. "
+                "30 questions, 24 to pass — items 7 to 10 clear together.",
+            ),
+        },
+        "M08": {
+            "instruction_zh": ("能辨認香港特別行政區區旗和區徽，並能說明其含意。由「第 7 至 10 項試卷」考核。",),
+            "instruction_en": ("Recognise the HKSAR regional flag and emblem and explain their meaning. Covered by the Items 7–10 paper.",),
+        },
+        "M09": {
+            "instruction_zh": ("認識在國歌奏唱和升掛國旗、區旗時應有之禮儀，以及升國旗的基本程序。由「第 7 至 10 項試卷」考核。",),
+            "instruction_en": ("Know the proper etiquette when the national anthem is played and the flags are raised, and the basic flag-raising procedure. Covered by the Items 7–10 paper.",),
+        },
+        "M10": {
+            "instruction_zh": ("明瞭設立國歌的用意，並能背唱之。由「第 7 至 10 項試卷」考核。",),
+            "instruction_en": ("Understand the purpose of the national anthem and be able to sing it from memory. Covered by the Items 7–10 paper.",),
+        },
+    }
+
+    def refresh_game_copy(self) -> int:
+        """把兩款遊戲的舊說明文字換成現行版本（只換未改動過的種子句）。
+
+        A leader's own wording is left alone: the swap only happens when the
+        stored sentence is byte-for-byte the old seed. Returns the number of
+        rows changed; a healthy deploy changes nothing.
+        """
+        seed = {str(task["code"]): task
+                for badge in SEED_BADGES for task in badge["tasks"] if task.get("code")}
+        changed = 0
+        for row in self.list("tasks"):
+            code = str(row.get("code") or "")
+            old = self.GAME_COPY_REFRESH.get(code)
+            if not old or code not in seed:
+                continue
+            patch: dict[str, str] = {}
+            for field, versions in old.items():
+                current = str(row.get(field) or "")
+                if current in versions and current != seed[code].get(field):
+                    patch[field] = seed[code][field]
+            if patch:
+                self.update("tasks", row["id"], patch)
+                changed += 1
+        return changed
+
+    def upgrade_flag_game(self) -> bool:
+        """第 7 項原是打勾任務；遊戲 4 上線後把它升級成旗桿遊戲，並接上第 4 區。
+
+        只動「還是舊打勾形狀」的第 7 項。領袖若已自行換上遊戲，一字不動。
+        回傳 True 代表這次真的有改動。
+        """
+        import copy
+
+        from .content import member_badge_guide
+        from .engine import as_json
+
+        task = next((row for row in self.list("tasks") if row.get("code") == "M07"), None)
+        if task is None or str(task.get("type") or "") == "quiz":
+            return False
+        seed = next((spec for badge in SEED_BADGES for spec in badge["tasks"]
+                     if spec.get("code") == "M07"), None)
+        if not seed:
+            return False
+        self.update("tasks", task["id"], {
+            "type": "quiz", "pass_score": seed.get("pass_score", 24),
+            "title_zh": seed["title_zh"], "title_en": seed["title_en"],
+            "instruction_zh": seed["instruction_zh"], "instruction_en": seed["instruction_en"],
+            "config_json": seed.get("config_json") or {"kind": "flag"},
+        })
+        badge = next((row for row in self.list("badges") if row.get("code") == "SC-01"), None)
+        if badge is None:
+            return True
+        guide = copy.deepcopy(as_json(badge.get("guide_json"), {}) or {})
+        areas = (guide.get("quest") or {}).get("areas") or []
+        if len(areas) < 4:
+            return True
+        game = areas[3].get("game") or {}
+        if game.get("ready") and game.get("task_code") and game.get("task_code") != "M07":
+            return True                              # 領袖自己接了別的遊戲
+        defaults = ((member_badge_guide().get("quest") or {}).get("areas") or [])
+        fallback = (defaults[3].get("game") if len(defaults) > 3 else {}) or {}
+        areas[3]["game"] = {
+            "n": 4, "kind": "flag", "ready": True, "task_code": "M07",
+            "name_zh": fallback.get("name_zh", "溪谷旗桿"),
+            "name_en": fallback.get("name_en", "The valley flagpole"),
+            "blurb_zh": fallback.get("blurb_zh", ""),
+            "blurb_en": fallback.get("blurb_en", ""),
+        }
+        if areas[3].get("hint_zh") == "溪邊豎著旗桿。國旗、區旗與升旗禮儀，都在這裡考。":
+            areas[3]["hint_zh"] = defaults[3].get("hint_zh", "")
+            areas[3]["hint_en"] = defaults[3].get("hint_en", "")
+        self.update("badges", badge["id"], {"guide_json": guide})
+        return True
+
+    def refresh_flag_story(self) -> bool:
+        """把仍是「24 分試卷」的溪谷說明換成故事玩法。領袖改過的句子不碰。"""
+        from .content import member_badge_guide
+        from .engine import as_json
+
+        fresh = member_badge_guide()
+        areas = (fresh.get("quest") or {}).get("areas") or []
+        if len(areas) < 4:
+            return False
+        game = (areas[3].get("game") or {})
+        slides = (fresh.get("quest") or {}).get("intro_slides") or []
+        slide = next((row for row in slides if row.get("title_zh") == "溪谷旗桿"), {})
+        items = {item.get("n"): item for item in (fresh.get("items") or [])}
+        item7 = items.get(7) or {}
+        mapping = {
+            "認旗徽、掛旗、唱國歌，再把國旗升到桿頂。30 題，24 分合格，一次完成第 7 至 10 項。": game.get("blurb_zh", ""),
+            "Name the flags, hang them, sing the anthem, then raise the flag. 30 questions, 24 to pass — items 7 to 10 in one go.": game.get("blurb_en", ""),
+            "溪邊豎著旗桿。認旗徽、掛旗、唱國歌，再把國旗升到桿頂。": areas[3].get("hint_zh", ""),
+            "A flagpole by the stream. Name the flags, hang them, sing the anthem, then raise the flag.": areas[3].get("hint_en", ""),
+            "溪邊豎著旗桿。國旗、區旗與升旗禮儀，都在這裡考。": areas[3].get("hint_zh", ""),
+            "A flagpole by the stream. The flags and the flag ceremony are tested here.": areas[3].get("hint_en", ""),
+            "沿溪流走進南面的谷裏，旗桿就立在營地中央。這裡的遊戲也在準備之中。": slide.get("text_zh", ""),
+            "Follow the stream down into the southern valley, where the flagpole stands over the camp. Its game is on the way too.": slide.get("text_en", ""),
+            "完成「第 7 至 10 項試卷」，合格分數為 24 分／30 分": (item7.get("req_zh") or [""])[0],
+            "Complete the Items 7–10 paper — pass mark 24 / 30": (item7.get("req_en") or [""])[0],
+            "由「第 7 至 10 項試卷」考核": "由溪谷旗桿的升旗禮一併完成",
+            "Covered by the Items 7–10 paper": "Cleared together when you finish the valley ceremony",
+            "自行考核 — 第 7 至 10 項共用同一份試卷": item7.get("method_note_zh", ""),
+            "Self-check — items 7–10 share one paper": item7.get("method_note_en", ""),
+        }
+        mapping = {old: new for old, new in mapping.items() if old and new and old != new}
+
+        def swap(value):
+            if isinstance(value, str):
+                return mapping.get(value, value)
+            if isinstance(value, list):
+                return [swap(item) for item in value]
+            if isinstance(value, dict):
+                return {key: swap(item) for key, item in value.items()}
+            return value
+
+        badge = next((row for row in self.list("badges") if row.get("code") == "SC-01"), None)
+        if badge is None:
+            return False
+        guide = as_json(badge.get("guide_json"), {}) or {}
+        updated = swap(guide)
+        if updated == guide:
+            return False
+        self.update("badges", badge["id"], {"guide_json": updated})
+        return True
+
+    def ensure_catalog(self, preferred_ids: dict[str, str] | None = None) -> bool:
+        """建立缺少的獎章與任務 —— 只新增，永不改寫已有的列。
+
+        第一次連上空試算表時建立全部；之後每次啟動只補上「程式有、試算表沒有」
+        的項目（例如日後新增的獎章），領袖改過的標題、題目與正確答案一律保留。
+        領袖在後台刪除過的項目記在設定 `catalog_removed`，不會被重新建立。
+        全程只有兩次寫入（獎章一次、任務一次），避免啟動時超時。
+        回傳 True 代表這次真的有新增。
+        """
+        now = now_iso()
+        guide = member_badge_guide()
+        item4 = item4_questions()
+        by_code: dict[str, dict] = {str(row.get("code")): row for row in self.list("badges")}
+        have_tasks = {str(row.get("code")) for row in self.list("tasks") if row.get("code")}
+        removed = {str(code) for code in (self.settings().get("catalog_removed") or [])}
+
+        if not by_code and not self.claim_catalog_boot():
+            return False                            # 另一個啟動正在建立
+
+        new_badges: list[dict] = []
+        # 逐一按次序處理：新獎章的 id 先產生，下一個獎章才可以指向它
+        for index, spec in enumerate(SEED_BADGES):
+            code = str(spec["code"])
+            if code in removed:
+                continue
+            if code not in by_code:
+                previous = SEED_BADGES[index - 1] if index else None
+                prerequisite = [by_code[str(previous["code"])]["id"]] if previous else []
+                row = {
+                    "id": new_id(), "section": "scout", "order_index": index + 1, "code": code,
+                    "title_zh": spec["title_zh"], "title_en": spec["title_en"],
+                    "subtitle_zh": spec["subtitle_zh"], "subtitle_en": spec["subtitle_en"],
+                    "desc_zh": spec["desc_zh"], "desc_en": spec["desc_en"],
+                    "emoji": spec["emoji"], "image_url": spec["image_url"], "color": spec["color"],
+                    "points_reward": spec["points_reward"],
+                    "prerequisite_badge_ids": prerequisite,
+                    "guide_json": guide if index == 0 else None,
+                    "status": "published", "created_at": now, "updated_at": now,
+                }
+                new_badges.append(row)
+                by_code[code] = row
+
+        added = False
+        if new_badges:
+            self.insert_many("badges", new_badges)
+            added = True
+
+        new_tasks: list[dict] = []
+        for spec in SEED_BADGES:
+            badge = by_code.get(str(spec["code"]))
+            if badge is None:                      # 領袖刪除了這個獎章
+                continue
+            for order, task in enumerate(spec["tasks"], start=1):
+                code = str(task["code"])
+                if code in removed or code in have_tasks:
+                    continue
+                config = dict(task.get("config_json", {}))
+                if config.get("bank") == "member-badge/item4" and item4:
+                    # merge the 50-question paper in; `bank` stays as a breadcrumb
+                    config["questions"] = item4
+                    config["quiz_title"] = item4_meta().get("title_zh", "")
+                    config["per_question"] = item4_meta().get("per_question", 2)
+                preferred = str((preferred_ids or {}).get(code) or "")
+                new_tasks.append({
+                    **({"id": preferred} if preferred else {}),
+                    "badge_id": badge["id"], "order_index": order, "code": code,
+                    "title_zh": task["title_zh"], "title_en": task["title_en"],
+                    "instruction_zh": task["instruction_zh"], "instruction_en": task["instruction_en"],
+                    "type": task["type"], "points": task["points"],
+                    "pass_score": task.get("pass_score", 0),
+                    "config_json": config,
+                    "status": "published", "created_at": now, "updated_at": now,
+                })
+        if new_tasks:
+            self.insert_many("tasks", new_tasks)
+            added = True
+        return added
+
+    # --- demo seed ----------------------------------------------------------
+    def seed_demo(self) -> None:
+        """Placeholder content so every screen is visible on first run."""
+        now = now_iso()
+        self.ensure_catalog()                     # 示範部署一樣要有正式目錄
+        self.upgrade_flag_game()                  # 第 7 項升級成旗桿遊戲
+        hashed, salt = hash_password(DEMO_PASSWORDS["leader"])
+        leader = self.insert("users", {
+            "role": "leader", "username": "leader1", "password_hash": hashed, "password_salt": salt,
+            "display_name_zh": "陳領袖", "display_name_en": "Leader Chan", "email": "",
+            "scout_no": "", "section": "leader", "patrol": "", "unit": "Sample Scout Group",
+            "avatar": "🧭", "status": "active", "must_change_password": False,
+            "show_on_leaderboard": False, "created_at": now, "created_by": "seed",
+        })
+        self.stats_for(leader["id"])
+        task_rows: list[dict] = [row for row in self.list("tasks") if row.get("code")]
+
+        # A handful of scouts, each somewhere inside the FIRST award (會員章):
+        # the tasks they have finished, and one that may be waiting for a leader.
+        # The four awards that follow 會員章 stay locked until it is earned, so
+        # the demo keeps the real shape of the scheme — one door open at a time.
+        demo_scouts = [
+            # M04–M06 are games now (cleared by playing), so the item waiting
+            # for a leader's word is M11 — 保護自己 (sign-off after the talk).
+            ("scout01", "王小明", "Wong Siu Ming", "Tiger", "🦊", ["M01", "M02", "M03"], "M11"),
+            ("scout02", "李美儀", "Lee Mei Yee", "Tiger", "🐼", ["M01", "M02", "M03", "M04"], None),
+            ("scout03", "張家豪", "Cheung Ka Ho", "Otter", "🦉", ["M01", "M02"], "M11"),
+            ("scout04", "何嘉欣", "Ho Ka Yan", "Otter", "🐧", ["M01"], None),
+            ("scout05", "陳大文", "Chan Tai Man", "Seagull", "🐯", ["M01", "M03"], None),
+            ("scout06", "林小玲", "Lam Siu Ling", "Seagull", "🐨", [], None),
+            ("scout07", "吳卓穎", "Ng Cheuk Wing", "Seagull", "🐬", [], None),
+        ]
+        by_code = {row["code"]: row for row in task_rows}
+        scout_hashed, scout_salt = hash_password(DEMO_PASSWORDS["scout"])
+        for index, (username, zh, en, patrol, avatar, done_codes, waiting_code) in enumerate(demo_scouts):
+            never_signed_in = username == "scout07"
+            scout = self.insert("users", {
+                "role": "scout", "username": username,
+                "password_hash": "" if never_signed_in else scout_hashed,
+                "password_salt": "" if never_signed_in else scout_salt,
+                "display_name_zh": zh, "display_name_en": en,
+                # everyone but the never-signed-in demo has an email on file —
+                # that address is what lets them reset their own password
+                "email": "" if never_signed_in else f"{username}@82hkg.example",
+                "scout_no": f"S{1000 + index}", "section": "scout", "patrol": patrol,
+                "unit": "Sample Scout Group", "avatar": avatar, "status": "active",
+                "must_change_password": never_signed_in, "show_on_leaderboard": True,
+                "created_at": now, "created_by": leader["id"],
+            })
+            self.stats_for(scout["id"])
+            for task in [by_code[c] for c in done_codes if c in by_code]:
+                config = task.get("config_json") or {}
+                config = json.loads(config) if isinstance(config, str) else config
+                answers_json = checklist_json = None
+                score = 100
+                if task["type"] == "quiz":
+                    # a finished paper: the demo scout passed with 92% (4 slips),
+                    # so the 錯題檢討 has something real to show
+                    questions = config.get("questions") or []
+                    answers = []
+                    for index, question in enumerate(questions):
+                        key = question.get("answer")
+                        if index % 13 == 12 and isinstance(key, int):      # every 13th one
+                            answers.append((key + 1) % max(1, len(question.get("options") or [1])))
+                        else:
+                            answers.append(key)
+                    answers_json = json.dumps(answers, ensure_ascii=False)
+                    right = sum(1 for index, question in enumerate(questions)
+                                if index < len(answers) and answers[index] == question.get("answer"))
+                    score = round(right / len(questions) * 100) if questions else 100
+                elif task["type"] == "checklist":
+                    checklist_json = json.dumps([True] * len(config.get("items") or []))
+                self.insert("progress_records", {
+                    "user_id": scout["id"], "badge_id": task["badge_id"], "task_id": task["id"],
+                    "attempt_no": 1, "status": "completed", "score": score,
+                    "answers_json": answers_json, "checklist_json": checklist_json,
+                    "evidence_url": "",
+                    "reflection_text": f"我是{zh}。這次活動讓我學會了團隊合作和與人溝通。" if task["type"] == "reflection" else "",
+                    "leader_comment": "", "points_awarded": task["points"],
+                    "submitted_at": now, "decided_at": now, "decided_by": "auto",
+                })
+                self.insert("points_ledger", {
+                    "user_id": scout["id"], "entry_type": "task",
+                    "points_delta": task["points"],
+                    "reason_zh": f"完成任務「{task['title_zh']}」",
+                    "reason_en": f"Completed task \"{task['title_en']}\"",
+                    "ref_type": "task", "ref_id": task["id"], "created_at": now, "created_by": "auto",
+                })
+            if waiting_code and waiting_code in by_code:
+                # one submission sits in the leaders' review queue
+                waiting = by_code[waiting_code]
+                kind = waiting["type"]
+                self.insert("progress_records", {
+                    "user_id": scout["id"], "badge_id": waiting["badge_id"], "task_id": waiting["id"],
+                    "attempt_no": 1, "status": "pending", "score": 0,
+                    "answers_json": None,
+                    "checklist_json": [True, False] if kind == "checklist" else None,
+                    "evidence_url": ("https://drive.google.com/file/d/1SampleEvidenceFileId/view"
+                                     if kind == "evidence" else ""),
+                    "reflection_text": (f"我是{zh}，已經完成這一項的學習，請領袖核實。"
+                                        if kind == "signoff" else
+                                        f"我是{zh}，想同大家分享這次活動的經歷。" if kind == "reflection" else ""),
+                    "leader_comment": "", "points_awarded": 0,
+                    "submitted_at": now, "decided_at": "", "decided_by": "",
+                })
+            # Use the very same rule as real gameplay: the Membership Badge
+            # cannot be seeded as earned while games 2–5 are placeholders.
+            from .engine import check_badge_completion
+            for badge in self.list("badges"):        # 目錄已建立（可能早於這次示範）
+                check_badge_completion(self, user=scout, badge=badge)
+            self.rebuild_stats(scout["id"])
+
+        for order, idea in enumerate(SEED_SUGGESTIONS, start=1):
+            self.insert("suggestions", {
+                "emoji": idea["emoji"], "category": idea["category"],
+                "title_zh": idea["title_zh"], "title_en": idea["title_en"],
+                "desc_zh": idea["desc_zh"], "desc_en": idea["desc_en"],
+                "link_url": "", "link_label_zh": "", "link_label_en": "",
+                "order_index": order, "active": True, "created_at": now,
+            })
+        for reward in SEED_REWARDS:
+            self.insert("rewards", {**reward, "desc_zh": reward.get("desc_zh", ""),
+                                    "desc_en": reward.get("desc_en", ""), "active": True})
+        self.insert("announcements", {
+            "title_zh": "歡迎來到童軍進度平台（示例公告）",
+            "title_en": "Welcome to the Scout Progress Platform (sample notice)",
+            "body_zh": "這是一則示例公告，領袖可在後台修改或刪除。",
+            "body_en": "This is a sample notice — leaders can edit or delete it in the console.",
+            "audience": "all", "pinned": True, "created_at": now, "expires_at": "",
+        })
+        self.insert("audit_log", {
+            "actor_id": leader["id"], "actor_role": "leader", "action": "seed_demo",
+            "entity": "system", "entity_id": "", "detail_json": json.dumps({"scouts": len(demo_scouts)}),
+            "created_at": now,
+        })
+        self._settings_cache = None
+
+
+def bootstrap_data_dir(store: Store) -> None:
+    """Creates ./data on first run so the app starts cleanly."""
+    if store.driver.name == "local":
+        store.driver.ensure_schema()
+
+
+def parse_sort_time(value: str) -> float:
+    return parse_time(value)
