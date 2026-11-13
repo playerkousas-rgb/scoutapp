@@ -1473,6 +1473,7 @@ def setup_checks(st) -> dict:
     leaders = [row for row in users if row.get("role") == "leader"]
     scouts = [row for row in users if row.get("role") == "scout"]
     games = _game_content(tasks)
+    duplicates = st.catalog_duplicates()
     on_sheets = st.driver.name == "sheets"
     sheet_id = str(getattr(st.driver, "spreadsheet_id", "") or "")
     mail_ready = bool(str(settings.get("smtp_host") or "").strip())
@@ -1489,16 +1490,29 @@ def setup_checks(st) -> dict:
             ("Spreadsheet ID: " + sheet_id[:12] + "…") if on_sheets else "Currently in the instance /tmp — it will be recycled",
             advice or "在 Vercel 加入 GOOGLE_SHEET_ID 與 GOOGLE_SERVICE_ACCOUNT_JSON，然後 Redeploy（docs/02）",
             "Add GOOGLE_SHEET_ID and GOOGLE_SERVICE_ACCOUNT_JSON in Vercel, then Redeploy (docs/02)"),
-        row("badges", len(badges) >= 5, "獎章目錄已經建立", "Badge catalogue created",
+        row("badges", len(badges) >= 5 and not duplicates["badges"],
+            "獎章目錄已經建立" if not duplicates["badges"] else "獎章目錄有重複項目",
+            "Badge catalogue created" if not duplicates["badges"] else "Badge catalogue has duplicates",
             (str(len(badges)) + " 個獎章" +
-             ("（上次啟動時建立失敗：" + str(st.config.get("catalog_error"))[:90] + "）"
-              if st.config.get("catalog_error") else "")),
-            str(len(badges)) + " badges",
-            "目錄會在第一次連上空試算表時自動建立；若一直是 0，代表正在執行的版本未含此功能，請部署最新版本",
-            "The catalogue is created once on the first connection; 0 means the running version is out of date — redeploy"),
-        row("tasks", len(tasks) >= 11, "任務與遊戲項目齊全", "Tasks and game items present",
-            str(len(tasks)) + " 個項目", str(len(tasks)) + " items",
+             ((f"（其中 {duplicates['badges']} 個內建重複項目）") if duplicates["badges"] else
+              ("（上次啟動時建立失敗：" + str(st.config.get("catalog_error"))[:90] + "）"
+               if st.config.get("catalog_error") else ""))),
+            str(len(badges)) + " badges" +
+            (f" ({duplicates['badges']} duplicate built-in item(s))" if duplicates["badges"] else ""),
+            "部署最新版本並 Redeploy；啟動時會安全合併內建重複項目" if duplicates["badges"] else
+            "目錄會在第一次連上空試算表時自動建立；若一直是 0，請部署最新版本",
+            "Deploy the latest version and Redeploy; startup safely merges duplicate built-in items" if duplicates["badges"] else
+            "The catalogue is created once on first connection; if it stays at 0, deploy the latest version"),
+        row("tasks", len(tasks) >= 11 and not duplicates["tasks"],
+            "任務與遊戲項目齊全" if not duplicates["tasks"] else "任務與遊戲有重複項目",
+            "Tasks and game items present" if not duplicates["tasks"] else "Tasks and games have duplicates",
+            str(len(tasks)) + " 個項目" +
+            (f"（其中 {duplicates['tasks']} 個內建重複項目）" if duplicates["tasks"] else ""),
+            str(len(tasks)) + " items" +
+            (f" ({duplicates['tasks']} duplicate built-in item(s))" if duplicates["tasks"] else ""),
+            "部署最新版本並 Redeploy；啟動時會安全合併內建重複項目" if duplicates["tasks"] else
             "部署最新版本；已建立過的目錄不會被覆蓋",
+            "Deploy the latest version and Redeploy; startup safely merges duplicate built-in items" if duplicates["tasks"] else
             "Deploy the latest version; existing rows are never overwritten"),
         row("games", games["cave"] and games["river"],
             "遊戲 1（石室）與遊戲 2（過河）已就緒", "Game 1 (cave) and Game 2 (river) ready",

@@ -113,6 +113,31 @@ def test_health_reports_counts_without_any_names():
     assert "陳大文" not in json.dumps(body, ensure_ascii=False), "健康檢查不可以回傳姓名"
 
 
+def test_health_never_calls_a_duplicated_catalogue_safe():
+    fake = FakeGoogle()
+    store = boot(fake)
+    badges = store.list("badges")
+    tasks = store.list("tasks")
+    store.insert_many("badges", [{**row, "id": f"dup-{row['id']}"} for row in badges])
+    store.insert_many("tasks", [{**row, "id": f"dup-{row['id']}"} for row in tasks])
+    app = create_app({"STORE": store, "TESTING": True, "SECRET_KEY": "t"})
+    client = app.test_client()
+
+    body = client.get("/health").get_json()
+    assert body["ok"] is False and body["setup_ready"] is False
+    assert body["catalog_duplicates"] == {"badges": 5, "tasks": 17}
+
+    page = client.get("/health", headers={"Accept": "text/html"}).get_data(as_text=True)
+    assert "獎章目錄有重複項目" in page
+    assert "重複獎章 5／重複任務 17" in page
+    assert "一切正常" not in page
+
+    checks = setup_checks(store)
+    by_key = rows(checks)
+    assert not by_key["badges"]["ok"] and not by_key["tasks"]["ok"]
+    assert checks["ready"] is False
+
+
 def test_the_health_page_is_readable_in_a_browser_and_still_json_for_machines():
     fake = FakeGoogle()
     store = boot(fake)

@@ -46,6 +46,9 @@ def setup_health_checks(store, counts: dict, on_sheets: bool) -> list[dict]:
     error = getattr(store, "config", {}).get("storage_error", "")
     reason, advice = storage_advice(error)
     reason_en, advice_en = storage_advice_en(error)
+    duplicates = store.catalog_duplicates()
+    catalogue_ready = (badge_count >= 5 and task_count >= 11
+                       and not duplicates["badges"] and not duplicates["tasks"])
     return [
         {
             "ok": on_sheets,
@@ -75,21 +78,30 @@ def setup_health_checks(store, counts: dict, on_sheets: bool) -> list[dict]:
                        "Variables, then Deployments → ⋯ → Redeploy."),
         },
         {
-            "ok": badge_count >= 5 and task_count >= 11,
-            "title": "獎章目錄與遊戲項目" if badge_count >= 5 and task_count >= 11
-                     else "獎章目錄還未建立",
-            "title_en": "Badge catalogue and game items" if badge_count >= 5 and task_count >= 11
-                        else "The badge catalogue is not built yet",
-            "detail": f"獎章 {badge_count}／任務 {task_count}。"
-                      + ("已完成，之後不會被更新覆蓋。" if badge_count >= 5 else
-                         "連上試算表後，第一次開啟會自動建立一次。"),
-            "detail_en": f"{badge_count} badges / {task_count} tasks. "
-                         + ("Done — later updates will not overwrite them." if badge_count >= 5 else
-                            "It is built once, the first time the platform opens with the Sheet connected."),
-            "fix": ("", "確認 Vercel 正在執行最新版本（Deployments → Redeploy），"
-                        "再重新打開平台一次。"),
-            "fix_en": ("", "Make sure Vercel is running the latest version (Deployments → Redeploy), "
-                           "then open the platform once more."),
+            "ok": catalogue_ready,
+            "title": ("獎章目錄與遊戲項目" if catalogue_ready else
+                      "獎章目錄有重複項目" if duplicates["badges"] or duplicates["tasks"] else
+                      "獎章目錄還未建立"),
+            "title_en": ("Badge catalogue and game items" if catalogue_ready else
+                         "The catalogue contains duplicate items" if duplicates["badges"] or duplicates["tasks"] else
+                         "The badge catalogue is not built yet"),
+            "detail": (f"獎章 {badge_count}／任務 {task_count}。"
+                       + (f"發現重複獎章 {duplicates['badges']}／重複任務 {duplicates['tasks']}。"
+                          if duplicates["badges"] or duplicates["tasks"] else
+                          "已完成，之後不會被更新覆蓋。" if catalogue_ready else
+                          "連上試算表後，第一次開啟會自動建立一次。")),
+            "detail_en": (f"{badge_count} badges / {task_count} tasks. "
+                          + (f"Found {duplicates['badges']} duplicate badge(s) and "
+                             f"{duplicates['tasks']} duplicate task(s)."
+                             if duplicates["badges"] or duplicates["tasks"] else
+                             "Done — later updates will not overwrite them." if catalogue_ready else
+                             "It is built once, the first time the platform opens with the Sheet connected.")),
+            "fix": ("", "確認 Vercel 正在執行最新版本，再 Redeploy；新版會在啟動時安全合併內建重複項目。"
+                    if duplicates["badges"] or duplicates["tasks"] else
+                    "確認 Vercel 正在執行最新版本（Deployments → Redeploy），再重新打開平台一次。"),
+            "fix_en": ("", "Deploy the latest version and Redeploy; startup safely merges duplicate built-in items."
+                       if duplicates["badges"] or duplicates["tasks"] else
+                       "Make sure Vercel is running the latest version (Deployments → Redeploy), then open the platform once more."),
         },
     ]
 
@@ -300,14 +312,21 @@ def create_app(config: dict | None = None) -> Flask:
             except Exception:                       # noqa: BLE001 — health must never 500
                 counts[name] = -1
         on_sheets = store.driver.name == "sheets"
+        duplicates = store.catalog_duplicates()
+        catalogue_ready = (counts.get("badges", 0) >= 5 and counts.get("tasks", 0) >= 11
+                           and not duplicates["badges"] and not duplicates["tasks"])
         payload = {
-            "ok": True,
+            # `ok` means the endpoint/app is operational; storage readiness is
+            # reported separately. Duplicate built-ins are a real integrity
+            # fault and therefore make this false.
+            "ok": not duplicates["badges"] and not duplicates["tasks"],
             "storage": store.driver.name,
             "unit": store.settings_cached().get("unit_name_zh", ""),
             "unit_en": store.settings_cached().get("unit_name_en", ""),
             "demo": bool(store.config.get("demo_login") or store.config.get("seed_demo")),
             "counts": counts,
-            "setup_ready": counts.get("badges", 0) >= 5 and counts.get("tasks", 0) >= 11,
+            "catalog_duplicates": duplicates,
+            "setup_ready": catalogue_ready,
             # 連不上試算表時的「人話」原因（不含金鑰、不含電郵），方便遠端診斷
             "storage_reason": storage_advice(store.config.get("storage_error", ""))[0][:160],
             # 目錄建立失敗時的原因（有值代表獎章／任務沒有建立成功）
