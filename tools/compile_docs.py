@@ -55,8 +55,8 @@ def demote(line: str) -> str:
 def main() -> None:
     today = datetime.date.today().isoformat()
     parts: list[str] = []
-    parts.append("# 港島第八十二旅童軍團 · 平台文件（合訂本）\n")
-    parts.append("**82nd Hong Kong Group — Scout Platform: the complete manual**\n")
+    parts.append("# 香港童軍總會荃灣第7旅 · 平台文件（合訂本）\n")
+    parts.append("**7th Tsuen Wan Scout Group — Scout Platform: the complete manual**\n")
     parts.append(f"_由 `tools/compile_docs.py` 於 {today} 由各份文件自動合併；改動任何一份之後請重新執行。_\n")
     parts.append("_Compiled automatically from the individual documents below. Edit the source "
                  "file, then run the tool again._\n")
