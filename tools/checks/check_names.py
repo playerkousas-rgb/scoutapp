@@ -81,7 +81,7 @@ def build_site() -> tuple[object, pathlib.Path]:
                 "password_salt": "" if fresh else salt,
                 "display_name_zh": zh, "display_name_en": en, "email": "",
                 "scout_no": f"{patrol[0]}{index}", "section": "scout", "patrol": patrol,
-                "unit": "港島第八十二旅童軍團", "avatar": "🦊", "status": "active",
+                "unit": "香港童軍總會荃灣第7旅", "avatar": "🦊", "status": "active",
                 "must_change_password": fresh, "show_on_leaderboard": True,
                 "created_at": "2026-01-01T00:00:00", "created_by": "check",
             })

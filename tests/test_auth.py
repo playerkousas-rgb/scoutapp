@@ -326,6 +326,7 @@ def _drop_cookies(thing):
 
 
 def test_demo_tile_survives_blocked_cookies(app):
+    app.config["ALLOW_URL_SESSION"] = True
     client = _drop_cookies(app.test_client())
     r = client.post("/login/demo/demo2")
     assert r.status_code == 302
@@ -336,6 +337,7 @@ def test_demo_tile_survives_blocked_cookies(app):
 
 
 def test_leader_demo_tile_survives_blocked_cookies(app):
+    app.config["ALLOW_URL_SESSION"] = True
     client = _drop_cookies(app.test_client())
     r = client.post("/login/demo/demo1")
     assert "sid=" in r.headers["Location"]
@@ -344,6 +346,7 @@ def test_leader_demo_tile_survives_blocked_cookies(app):
 
 
 def test_every_link_keeps_the_token(app):
+    app.config["ALLOW_URL_SESSION"] = True
     client = _drop_cookies(app.test_client())
     r = client.post("/login/demo/demo2")
     page = _drop_cookies(app).get(r.headers["Location"]).get_data(as_text=True)
@@ -354,6 +357,7 @@ def test_every_link_keeps_the_token(app):
 
 
 def test_first_tap_and_welcome_card_survive_blocked_cookies(app, store):
+    app.config["ALLOW_URL_SESSION"] = True
     scout = _find(store, "scout07")
     client = _drop_cookies(app.test_client())
     tap = client.get(f"/login/scout/Seagull/{scout['id']}")
@@ -376,6 +380,7 @@ def test_first_tap_and_welcome_card_survive_blocked_cookies(app, store):
 
 
 def test_a_form_post_keeps_the_token_in_its_action(app):
+    app.config["ALLOW_URL_SESSION"] = True
     client = _drop_cookies(app.test_client())
     r = client.post("/login/demo/demo2")
     page = _drop_cookies(app).get(r.headers["Location"]).get_data(as_text=True)
@@ -528,7 +533,7 @@ def test_the_forgot_link_lives_on_the_password_page_only(client, store):
 def test_a_scout_changes_their_own_password_with_their_email(app, store):
     """The reset is self-service: the email on the account is the key."""
     scout = _find(store, "scout01")
-    assert scout["email"].endswith("@82hkg.example"), "the sample scout has an email on file"
+    assert scout["email"].endswith("@tw7.example"), "the sample scout has an email on file"
     client = app.test_client()
     url = f"/forgot/scout/Tiger/{scout['id']}"
     page = client.get(url).get_data(as_text=True)
@@ -767,7 +772,7 @@ def test_a_failed_send_says_so_and_offers_the_way_round(app, store, monkeypatch)
 
 def test_the_mask_hides_the_address_but_keeps_it_recognisable():
     from scout.mailer import mask_email
-    assert mask_email("scout01@82hkg.example") == "sc***@82hkg.example"
+    assert mask_email("scout01@tw7.example") == "sc***@tw7.example"
     assert mask_email("ab@example.com") == "a***@example.com"
     assert mask_email("") == "***"
 

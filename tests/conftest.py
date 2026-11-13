@@ -8,6 +8,9 @@ import tempfile
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Importing app.py creates its WSGI app. Keep that import-time store out of the
+# committed empty data/db scaffold; every real test gets its own fixture below.
+os.environ.setdefault("DATA_DIR", os.path.join(tempfile.gettempdir(), "scoutapp-pytest-import"))
 
 from app import create_app           # noqa: E402
 from scout.store import Store        # noqa: E402

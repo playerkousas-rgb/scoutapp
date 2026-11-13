@@ -57,7 +57,7 @@
               <span class="chip light">{{ kinds[row.kind].emoji }} {{ L(kinds[row.kind].zh, kinds[row.kind].en) }}</span>
               <strong>{{ row.title }}</strong>
               <div class="small muted">
-                {{ name_of(row.who) }} · {{ patrol_name(row.who.get('patrol', '')) }}
+                {{ name_of(row.who) }}{% if uses_patrols %} · {{ patrol_name(row.who.get('patrol', '')) }}{% endif %}
                 · <span class="timeline-when">{{ (row.created_at or '')[:16].replace('T', ' ') }}</span>
               </div>
               <div class="small" style="white-space:pre-wrap; margin-top:.35rem">{{ row.body }}</div>

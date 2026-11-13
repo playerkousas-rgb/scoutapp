@@ -24,7 +24,7 @@
       </label>
       <label class="field"><span>{{ L('積分', 'Points') }}</span><input type="number" name="points" value="{{ task.points }}"></label>
       {% if badge and badge.code == 'SC-01' and task.code == 'M04' %}
-        <div class="field"><span>{{ L('山洞通關規則', 'Cave completion rule') }}</span><p class="small muted">{{ L('完成全部 50 題即通關，分數只供回顧。', 'Finish all 50 questions to clear the cave; the score is for review only.') }}</p></div>
+        <div class="field"><span>{{ L('山洞通關規則', 'Cave completion rule') }}</span><p class="small muted">{{ L('完成全部 ' ~ (raw_config.get('questions', []) | length) ~ ' 題即通關，分數只供回顧。', 'Finish all ' ~ (raw_config.get('questions', []) | length) ~ ' questions to clear the cave; the score is for review only.') }}</p></div>
       {% else %}
         <label class="field"><span>{{ L('合格分數（小測驗）', 'Pass mark (quiz)') }}</span><input type="number" name="pass_score" value="{{ task.pass_score }}"></label>
       {% endif %}
@@ -41,8 +41,8 @@
 
     <h3 style="margin-top:1rem">{{ L('任務內容', 'Task content') }}</h3>
     {% if cave_task %}
-      <div class="alert info">{{ L('山洞的 50 題分屬四面壁畫，不能在此貼上普通測驗清單；請使用下方專用編輯頁，逐題修改內容與答案，題號及分組會自動保留。',
-                                  'The cave’s 50 questions are linked to four walls. Do not paste a normal quiz list here. Use the dedicated editor to update questions and answers while preserving their IDs and groups.') }}</div>
+      <div class="alert info">{{ L('山洞題目分屬四面壁畫，不能在此貼上普通測驗清單；請使用下方專用編輯頁，逐題修改內容與答案，題號及分組會自動保留。',
+                                  'The cave questions are linked to four walls. Do not paste a normal quiz list here. Use the dedicated editor to update questions and answers while preserving their IDs and groups.') }}</div>
       <a class="btn primary" href="{{ url_for('leader_routes.cave_questions', task_id=task.id) }}">🕯️ {{ L('編輯山洞題目與答案', 'Edit cave questions & answers') }}</a>
       <a class="btn ghost" href="{{ url_for('leader_routes.cave_walls', task_id=task.id) }}">🖼️ {{ L('編輯山洞壁畫文字', 'Edit cave wall text') }}</a>
     {% elif task.type == 'quiz' %}
@@ -86,7 +86,7 @@
         <dt>{{ L('類型', 'Type') }}</dt><dd>{{ task.type_label_zh if lang != 'en' else task.type_label_en }}</dd>
         <dt>{{ L('自動', 'Automatic') }}</dt><dd>{{ L('是', 'Yes') if task.auto else L('否（領袖核實）', 'No (leader verifies)') }}</dd>
         {% if badge and badge.code == 'SC-01' and task.code == 'M04' %}
-          <dt>{{ L('山洞通關規則', 'Cave completion') }}</dt><dd>{{ L('完成全部 50 題', 'All 50 questions') }}</dd>
+          <dt>{{ L('山洞通關規則', 'Cave completion') }}</dt><dd>{{ L('完成全部 ' ~ (raw_config.get('questions', []) | length) ~ ' 題', 'All ' ~ (raw_config.get('questions', []) | length) ~ ' questions') }}</dd>
         {% else %}
           <dt>{{ L('合格分數', 'Pass mark') }}</dt><dd>{{ task.pass_score }}%</dd>
         {% endif %}

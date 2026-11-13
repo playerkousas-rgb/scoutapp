@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local runtime data and uploads (production data belongs in Google Sheets/Drive)
+data/uploads/
+backups/
+
+# Secrets — only .env.example may be committed
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+service-account*.json
+credentials*.json
+
+# Build and platform output
+public/
+.vercel/
+build/
+dist/
+coverage/
+
+# Generated offline/release files
+demo-preview.html
+bridge-preview.html
+login-preview.html
+welcome-preview.html
+*.zip
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+*.bak
+*.tmp
+*.old
+*.orig
+*.swp
+
+# Never commit locally injected/keyed artifacts
+*_local_*
+*_injected*
+*.keyed.html

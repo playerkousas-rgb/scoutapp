@@ -11,7 +11,7 @@ Signing in — one screen per decision, so a scout never faces a wall of fields:
 """
 from __future__ import annotations
 
-from flask import Blueprint, g, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, g, jsonify, redirect, render_template, request, url_for
 
 from ..auth import (
     check_password, consume_reset, create_reset_token, demo_username, end_session,
@@ -28,13 +28,12 @@ auth_routes = Blueprint("auth_routes", __name__)
 
 
 def _with_sid(url: str, token: str) -> str:
-    """Put the session token in a redirect target as well as the cookie.
+    """Carry a token in preview links only when explicitly enabled.
 
-    Needed because the preview iframe is a third-party frame: the browser may
-    refuse the cookie, and then `?sid=…` is the only thing keeping the scout
-    signed in. app.py then carries it on every link.
+    Production keeps bearer tokens out of URLs, logs, history and referrers.
     """
-    if not url.startswith("/") or not token or "sid=" in url:
+    if (not current_app.config.get("ALLOW_URL_SESSION") or not url.startswith("/")
+            or not token or "sid=" in url):
         return url
     return url + ("&" if "?" in url else "?") + "sid=" + token
 
@@ -62,7 +61,13 @@ def _set_session_cookie(response, token: str):
 
 
 def _patrols(settings: dict) -> list[dict]:
-    return [{"value": p, "label": patrol_label(p)} for p in (settings.get("patrols") or ["Tiger", "Otter", "Seagull"])]
+    return [{"value": p, "label": patrol_label(p)} for p in (settings.get("patrols") or [])]
+
+
+def _all_scouts(st) -> list[dict]:
+    rows = [public_user(u) for u in st.list("users")
+            if u.get("role") == "scout" and u.get("status") == "active"]
+    return sorted(rows, key=lambda u: str(u.get("display_name_zh") or u.get("display_name_en") or u.get("username")))
 
 
 def _in_scene_order(patrols: list[dict]) -> list[dict]:
@@ -104,8 +109,8 @@ def setup():
         return redirect(home_for(g.get("user")) if g.get("user") else url_for("auth_routes.login"))
     defaults = st.settings_cached()
     return render_template("auth/setup.html", form={
-        "unit_zh": defaults.get("unit_name_zh") or "港島第八十二旅童軍團",
-        "unit_en": defaults.get("unit_name_en") or "Sample Scout Group",
+        "unit_zh": defaults.get("unit_name_zh") or "香港童軍總會荃灣第7旅",
+        "unit_en": defaults.get("unit_name_en") or "7th Tsuen Wan Scout Group",
         "name_zh": "", "name_en": "", "username": "leader1",
     })
 
@@ -158,6 +163,7 @@ def login():
     return render_template(
         "auth/login.html",
         patrols=_in_scene_order(_patrols(settings)),
+        scouts=_all_scouts(st) if not settings.get("patrols") else [],
         demo_tiles=[
             {"handle": handle, "label_zh": info["label_zh"], "label_en": info["label_en"],
              "icon": {"demo1": "🧭", "demo2": "🦊"}.get(handle, "🆕")}
@@ -255,6 +261,7 @@ def scout_names(patrol: str):
                            all_patrols=_patrols(st.settings_cached()))
 
 
+@auth_routes.get("/login/member/<user_id>", defaults={"patrol": ""})
 @auth_routes.get("/login/scout/<patrol>/<user_id>")
 def scout_password(patrol: str, user_id: str):
     """Name tapped.
@@ -283,6 +290,7 @@ def scout_password(patrol: str, user_id: str):
                            self_reset=bool(st.settings_cached().get("scout_self_reset")))
 
 
+@auth_routes.post("/login/member/<user_id>", defaults={"patrol": ""})
 @auth_routes.post("/login/scout/<patrol>/<user_id>")
 def scout_sign_in(patrol: str, user_id: str):
     st = store()
@@ -321,9 +329,11 @@ def scout_sign_in(patrol: str, user_id: str):
 @auth_routes.get("/forgot")
 def forgot():
     st = store()
+    settings = st.settings_cached()
     return render_template("auth/forgot.html",
-                           patrols=_patrols(st.settings_cached()),
-                           self_reset=bool(st.settings_cached().get("scout_self_reset")))
+                           patrols=_patrols(settings),
+                           scouts=_all_scouts(st) if not settings.get("patrols") else [],
+                           self_reset=bool(settings.get("scout_self_reset")))
 
 
 @auth_routes.post("/forgot")
@@ -334,13 +344,17 @@ def forgot_request():
     patrol = (form.get("patrol") or "").strip()
     user_id = (form.get("user_id") or "").strip()
     user = st.get("users", user_id) if user_id else None
-    if not user or user.get("role") != "scout" or str(user.get("patrol") or "") != patrol:
+    uses_patrols = bool(st.settings_cached().get("patrols"))
+    wrong_patrol = uses_patrols and str((user or {}).get("patrol") or "") != patrol
+    if not user or user.get("role") != "scout" or wrong_patrol:
         if wants_json():
             return fail(404, "not_found", "找不到此童軍", "Scout not found")
         return render_template("auth/forgot.html", patrols=_patrols(st.settings_cached()),
                                self_reset=bool(st.settings_cached().get("scout_self_reset")),
-                               patrol=patrol, scouts=scouts_in_patrol(st, patrol),
-                               error_zh="請先選擇小隊和姓名", error_en="Pick your patrol and name first"), 404
+                               patrol=patrol,
+                               scouts=(scouts_in_patrol(st, patrol) if uses_patrols else _all_scouts(st)),
+                               error_zh=("請先選擇小隊和姓名" if uses_patrols else "請先選擇姓名"),
+                               error_en=("Pick your patrol and name first" if uses_patrols else "Pick your name first")), 404
 
     if st.settings_cached().get("scout_self_reset"):
         reset_password(st, user)
@@ -400,7 +414,9 @@ def _reset_page(st, patrol: str, user: dict, error_zh: str = "", error_en: str =
 
 def _scout_or_none(st, patrol: str, user_id: str) -> dict | None:
     user = st.get("users", user_id)
-    if not user or user.get("role") != "scout" or str(user.get("patrol") or "") != patrol:
+    if not user or user.get("role") != "scout":
+        return None
+    if st.settings_cached().get("patrols") and str(user.get("patrol") or "") != patrol:
         return None
     return user
 
@@ -410,6 +426,7 @@ def _link_base() -> str:
     return base.rstrip("/") if base else ""
 
 
+@auth_routes.get("/forgot/member/<user_id>", defaults={"patrol": ""})
 @auth_routes.get("/forgot/scout/<patrol>/<user_id>")
 def forgot_scout(patrol: str, user_id: str):
     """「忘記密碼」 from the password page — email a link, or fall back politely."""
@@ -420,6 +437,7 @@ def forgot_scout(patrol: str, user_id: str):
     return _reset_page(st, patrol, user)
 
 
+@auth_routes.post("/forgot/member/<user_id>/send", defaults={"patrol": ""})
 @auth_routes.post("/forgot/scout/<patrol>/<user_id>/send")
 def forgot_send_link(patrol: str, user_id: str):
     """Mint a one-time link and email it to the address already on the account.
@@ -464,7 +482,7 @@ def forgot_send_link(patrol: str, user_id: str):
     link = (base + url_for("auth_routes.reset_link", token=token)) if base else \
         url_for("auth_routes.reset_link", token=token, _external=True)
     ok_sent, error = mailer.send_reset_link(
-        cfg, user, link, unit_zh=st.settings_cached().get("unit_name_zh") or "港島第八十二旅童軍團")
+        cfg, user, link, unit_zh=st.settings_cached().get("unit_name_zh") or "香港童軍總會荃灣第7旅")
     audit(user, "reset_link_sent" if ok_sent else "reset_link_failed", "users", user["id"],
           {"to": mailer.mask_email(on_file), "error": error[:120]})
     if not ok_sent:
@@ -477,6 +495,7 @@ def forgot_send_link(patrol: str, user_id: str):
     return redirect(url_for("auth_routes.forgot_sent", patrol=patrol, user_id=user_id))
 
 
+@auth_routes.get("/forgot/member/<user_id>/sent", defaults={"patrol": ""})
 @auth_routes.get("/forgot/scout/<patrol>/<user_id>/sent")
 def forgot_sent(patrol: str, user_id: str):
     """「請查看你的電郵」 — with the masked address and a resend button."""
@@ -488,6 +507,7 @@ def forgot_sent(patrol: str, user_id: str):
                            **_reset_context(st, patrol, user, again=request.args.get("again") == "1"))
 
 
+@auth_routes.post("/forgot/member/<user_id>", defaults={"patrol": ""})
 @auth_routes.post("/forgot/scout/<patrol>/<user_id>")
 def forgot_reset(patrol: str, user_id: str):
     """Without a mailbox: the scout's own email + a new password, on the spot.

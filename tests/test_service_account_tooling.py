@@ -11,9 +11,9 @@ from scout.store import _unescape_raw_newlines, parse_service_account
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 KEY = {
-    "type": "service_account", "project_id": "82hkg-scout",
+    "type": "service_account", "project_id": "tw7-scout",
     "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkq\n-----END PRIVATE KEY-----\n",
-    "client_email": "scout-platform@82hkg-scout.iam.gserviceaccount.com",
+    "client_email": "scout-platform@tw7-scout.iam.gserviceaccount.com",
     "token_uri": "https://oauth2.googleapis.com/token",
 }
 
@@ -24,7 +24,7 @@ def test_a_normal_key_parses():
 
 def test_a_value_wrapped_in_quotes_is_accepted():
     """Some copy paths hand you the value already quoted."""
-    assert parse_service_account(json.dumps(json.dumps(KEY)))["project_id"] == "82hkg-scout"
+    assert parse_service_account(json.dumps(json.dumps(KEY)))["project_id"] == "tw7-scout"
 
 
 def test_real_newlines_inside_the_private_key_are_repaired():
@@ -37,12 +37,12 @@ def test_real_newlines_inside_the_private_key_are_repaired():
 
 
 def test_stray_whitespace_and_bom_do_not_matter():
-    assert parse_service_account("\ufeff  " + json.dumps(KEY) + "\n\n")["project_id"] == "82hkg-scout"
+    assert parse_service_account("\ufeff  " + json.dumps(KEY) + "\n\n")["project_id"] == "tw7-scout"
 
 
 def test_a_pasted_path_is_rejected_with_the_original_message():
     with pytest.raises(ValueError) as caught:
-        parse_service_account(r"C:\Users\me\Downloads\82hkg-scout.json")
+        parse_service_account(r"C:\Users\me\Downloads\tw7-scout.json")
     assert "Expecting value" in str(caught.value)          # advice text keys off this
 
 

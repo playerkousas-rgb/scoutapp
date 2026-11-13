@@ -7,14 +7,14 @@
   <div class="welcome-card card pad-lg">
     <div class="welcome-hero" style="--m-soft: {{ m.soft }}">
       <span class="welcome-art" aria-hidden="true">
-        {% if m.img %}
+        {% if uses_patrols and m.img %}
           <img src="{{ m.img }}" width="620" height="775" alt="">
         {% else %}
-          <span style="display:block; text-align:center; font-size:2.6rem; padding:1.2rem 0">{{ m.emoji }}</span>
+          <span class="tw7-mark" style="width:76px; margin:1rem auto">TW7</span>
         {% endif %}
       </span>
       <div>
-        <span class="chip brass">{{ L('帳戶設定', 'Account setup') }} · {{ patrol_label.en or patrol_label.zh }}</span>
+        <span class="chip brass">{{ L('帳戶設定', 'Account setup') }}{% if uses_patrols %} · {{ patrol_label.en or patrol_label.zh }}{% endif %}</span>
         <h1 style="margin:.35rem 0 .1rem">
           🎉 {{ L('歡迎，', 'Welcome, ') }}{{ scout.display_name_zh or scout.display_name_en }}！
         </h1>

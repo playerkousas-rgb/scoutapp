@@ -3,8 +3,7 @@
 {% block shell %}
 <div class="screen">
   <div class="narrow card pad-lg">
-    <img class="card-logo" src="{{ url_for('static', filename='img/brand/82hkg-logo.webp') }}"
-         width="900" height="483" alt="{{ L('港島第八十二旅童軍團', 'Sample Scout Group') }}">
+    <span class="tw7-mark card-logo" aria-label="TW7">TW7</span>
     <h1>{{ L('建立第一位領袖', 'Create the first leader') }}</h1>
     <p class="muted small">
       {{ L('這個平台還沒有領袖帳戶。填好下面幾欄，就會建立第一位領袖；之後由這位領袖在後台開童軍帳戶、編內容。',
@@ -23,7 +22,7 @@
       </label>
       <label class="field">
         <span>{{ L('單位名稱（英文，可留空）', 'Unit name (English, optional)') }}</span>
-        <input type="text" name="unit_en" value="{{ form.unit_en }}" placeholder="Sample Scout Group">
+        <input type="text" name="unit_en" value="{{ form.unit_en }}" placeholder="7th Tsuen Wan Scout Group">
       </label>
       <label class="field">
         <span>{{ L('領袖中文姓名', 'Leader name (Chinese)') }}</span>

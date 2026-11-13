@@ -62,7 +62,7 @@ def test_a_redeploy_never_touches_the_data_in_the_sheet():
     from app import create_app
     app = create_app({"STORE": store, "TESTING": True, "SECRET_KEY": "t"})
     client = app.test_client()
-    made = client.post("/setup", data={"unit_zh": "港島第八十二旅童軍團", "name_zh": "陳大文",
+    made = client.post("/setup", data={"unit_zh": "香港童軍總會荃灣第7旅", "name_zh": "陳大文",
                                        "username": "leader1", "password": "harbour-82",
                                        "password2": "harbour-82"}, follow_redirects=False)
     assert made.status_code == 302
@@ -72,7 +72,7 @@ def test_a_redeploy_never_touches_the_data_in_the_sheet():
     scout = store.insert("users", {
         "role": "scout", "username": "scout01", "password_hash": "x", "password_salt": "y",
         "display_name_zh": "王小明", "display_name_en": "Wong Siu Ming", "email": "a@b.c",
-        "scout_no": "S1000", "section": "scout", "patrol": "Tiger", "unit": "港島第八十二旅童軍團",
+        "scout_no": "S1000", "section": "scout", "patrol": "Tiger", "unit": "香港童軍總會荃灣第7旅",
         "avatar": "", "status": "active", "must_change_password": False,
         "show_on_leaderboard": True, "created_at": "2026-10-16T00:00:00.000Z", "created_by": "leader1",
     })

@@ -15,15 +15,19 @@
     {% if error_zh %}<div class="alert error">{{ L(error_zh, error_en) }}</div>{% endif %}
 
     <form method="post" action="{{ url_for('auth_routes.forgot_request') }}">
-      <label class="field">
-        <span>{{ L('小隊', 'Patrol') }}</span>
-        <select name="patrol" onchange="window.location.href='{{ url_for('auth_routes.forgot_names', patrol='__P__') }}'.replace('__P__', this.value)">
-          <option value="">{{ L('請選擇', 'Choose') }}</option>
-          {% for p in patrols %}
-            <option value="{{ p.value }}" {{ 'selected' if patrol == p.value else '' }}>{{ p.label.en or p.label.zh }}</option>
-          {% endfor %}
-        </select>
-      </label>
+      {% if uses_patrols %}
+        <label class="field">
+          <span>{{ L('小隊', 'Patrol') }}</span>
+          <select name="patrol" onchange="window.location.href='{{ url_for('auth_routes.forgot_names', patrol='__P__') }}'.replace('__P__', this.value)">
+            <option value="">{{ L('請選擇', 'Choose') }}</option>
+            {% for p in patrols %}
+              <option value="{{ p.value }}" {{ 'selected' if patrol == p.value else '' }}>{{ p.label.en or p.label.zh }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      {% else %}
+        <input type="hidden" name="patrol" value="">
+      {% endif %}
       <label class="field">
         <span>{{ L('你的姓名', 'Your name') }}</span>
         <select name="user_id">
@@ -35,7 +39,7 @@
       </label>
       <button class="btn primary" type="submit" style="width:100%">{{ L('通知領袖重設密碼', 'Ask a leader to reset it') }}</button>
     </form>
-    <p class="muted small" style="margin-top:.8rem">{{ L('忘記小隊？請直接找領袖協助。', 'Not sure of your patrol? Just ask a leader.') }}</p>
+    <p class="muted small" style="margin-top:.8rem">{{ L('如需協助，請直接聯絡領袖。', 'Ask a leader directly if you need help.') }}</p>
   </div>
 </div>
 {% endblock %}

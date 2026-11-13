@@ -60,17 +60,8 @@
       </div>
 
       <div class="card" style="margin-top:1rem">
-        <h3 style="margin-top:0">🐯 {{ L('小隊', 'Patrols') }}</h3>
-        <p class="small muted">{{ L('登入時會按這個次序顯示。', 'Shown in this order on the sign-in screens.') }}</p>
-        <div class="patrol-pills">
-          {% for patrol in current.patrols %}
-            <label class="chip"><input type="checkbox" name="patrols" value="{{ patrol }}" checked> {{ L(patrol_label(patrol).zh, patrol_label(patrol).en) }}</label>
-          {% endfor %}
-        </div>
-        <label class="field" style="margin-top:.6rem"><span>{{ L('新增小隊', 'Add a patrol') }}</span>
-          <input type="text" placeholder="{{ L('輸入後按 Enter', 'type and press Enter') }}" data-patrol-input="#patrol-list">
-        </label>
-        <div class="patrol-pills" id="patrol-list"></div>
+        <h3 style="margin-top:0">🧑‍🤝‍🧑 {{ L('成員登入', 'Member sign-in') }}</h3>
+        <p class="small muted" style="margin:0">{{ L('荃灣第 7 旅不設小隊；登入頁會直接列出所有成員姓名。', 'The 7th Tsuen Wan Scout Group does not use patrols; the sign-in page lists every member directly.') }}</p>
       </div>
 
       <div class="card" style="margin-top:1rem">

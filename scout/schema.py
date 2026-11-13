@@ -169,8 +169,8 @@ def key_field(collection: str) -> str:
 
 
 DEFAULT_SETTINGS: dict = {
-    "unit_name_zh": "港島第八十二旅童軍團",
-    "unit_name_en": "Sample Scout Group",
+    "unit_name_zh": "香港童軍總會荃灣第7旅",
+    "unit_name_en": "7th Tsuen Wan Scout Group",
     "section": "scout",
     # Optional extras. Each one is off until the unit is ready for it: flip it
     # in 領袖後台 → 設定 → 功能開關 and the page + nav link come back by
@@ -184,10 +184,11 @@ DEFAULT_SETTINGS: dict = {
         "gacha": True,            # 抽卡 — on; a leader can hide it
     },
     "leaderboard_metrics": ["badges", "tasks"],
-    "leaderboard_scopes": ["unit", "patrol", "all"],
+    "leaderboard_scopes": ["unit", "all"],
     "motto_zh": "日行一善",
     "motto_en": "Do a good turn every day",
-    "patrols": ["Tiger", "Otter", "Seagull"],   # 小隊, in sign-in order
+    # 荃灣第 7 旅不設小隊。空清單是明確設定，不可 fallback 到示範小隊。
+    "patrols": [],
     "scout_self_reset": False,                  # «forgot password» clears it instantly
     "ui_sound": True,                           # game sounds on by default
     # ── the mailbox that sends password-reset links (see scout/mailer.py) ──
@@ -316,10 +317,7 @@ SEED_BADGES = [
                 # Reuse the server-side bank to mark the cave's first attempts.
                 # It is not a second quiz page: /tasks/<id> redirects to the game.
                 "config_json": {"bank": "member-badge/item4", "require_all": True,
-                                "links": [
-                                    {"label_zh": "溫習資源", "label_en": "Study resources",
-                                     "url": "https://drive.google.com/drive/folders/18XAKwwF-ECWkcO6NLd1L1Hw8lomZBCEb?usp=sharing"},
-                                ]},
+                                "links": []},
             },
             {
                 "code": "M05",
@@ -343,10 +341,7 @@ SEED_BADGES = [
                 "instruction_en": "Know the Scout customs for the investiture ceremony and the basic drill movements. The third area's only game has two sections: on the cliff, learn the seven fall-in hand signs and where the leader stands; then, on the parade ground, learn drill movements in three stages — alert, stand at ease and salute; pacing in four directions with left, right and about turns; and mark time, quick march, halt and dressing. In every stage, study the command, count and key points on the cards first, then watch each movement and choose its command inside the count. Then perform them for a leader; their approval in the leader account completes item 6.",
                 "type": "quiz", "points": 15, "pass_score": 0,
                 "config_json": {"kind": "drill", "require_all": True,
-                                "links": [
-                                    {"label_zh": "步操示範資源", "label_en": "Drill reference",
-                                     "url": "https://drive.google.com/drive/folders/1o7CruXDWSruWb10vEhxfPO_yNiWi93-d?usp=sharing"},
-                                ]},
+                                "links": []},
             },
             {
                 "code": "M07",
@@ -356,12 +351,7 @@ SEED_BADGES = [
                 "instruction_en": "Recognise the national flag and emblem of the PRC and explain their meaning. The fourth area's only game: follow the stream, read the notebook, learn the flags, the ceremony and the anthem, then perform the ceremony yourself. Finishing it clears items 7 to 10 together.",
                 "type": "quiz", "points": 10, "pass_score": 0,
                 "config_json": {"kind": "flag", "require_all": True,
-                                "links": [
-                                    {"label_zh": "第 7 至 10 項試卷（Google Form）", "label_en": "Items 7–10 paper (Google Form)",
-                                     "url": "https://forms.gle/NmdM72WapUpbajFHA"},
-                                    {"label_zh": "溫習資源", "label_en": "Study resources",
-                                     "url": "https://drive.google.com/drive/folders/1LtM4RykgGrrITxZRwWHeN-pWHnxKBKTY?usp=drive_link"},
-                                ]},
+                                "links": []},
             },
             {
                 "code": "M08",
@@ -373,10 +363,7 @@ SEED_BADGES = [
                 "config_json": {
                     "items": [{"zh": "我能認出區旗、區徽，並說出它們的含意",
                                "en": "I can recognise the regional flag and emblem and explain their meaning"}],
-                    "links": [
-                        {"label_zh": "第 7 至 10 項試卷（Google Form）", "label_en": "Items 7–10 paper (Google Form)",
-                         "url": "https://forms.gle/NmdM72WapUpbajFHA"},
-                    ]},
+                    "links": []},
             },
             {
                 "code": "M09",
@@ -487,7 +474,7 @@ SEED_BADGES = [
             },
             {
                 "code": "T-23",
-                "title_zh": "小隊領袖簽核（示例）", "title_en": "Patrol leader sign-off (sample)",
+                "title_zh": "領袖簽核（示例）", "title_en": "Leader sign-off (sample)",
                 "instruction_zh": "由領袖確認領導表現。", "instruction_en": "Leader confirms leadership performance.",
                 "type": "signoff", "points": 60, "config_json": {},
             },
@@ -509,8 +496,8 @@ SEED_SUGGESTIONS = [
     {
         "emoji": "🪢", "category": "skill",
         "title_zh": "練習一個繩結", "title_en": "Practise one knot",
-        "desc_zh": "拿出繩子，試試平結或稱人結。每週練一種，集會時可以教其他隊員。",
-        "desc_en": "Grab a rope and try a reef knot or a bowline. One a week, then teach your patrol.",
+        "desc_zh": "拿出繩子，試試平結或稱人結。每週練一種，集會時可以教其他成員。",
+        "desc_en": "Grab a rope and try a reef knot or a bowline. Practise one a week, then teach another member.",
     },
     {
         "emoji": "📖", "category": "learn",
@@ -538,9 +525,9 @@ SEED_SUGGESTIONS = [
     },
     {
         "emoji": "🎨", "category": "creative",
-        "title_zh": "畫下你的小隊徽章", "title_en": "Design your patrol badge",
-        "desc_zh": "用鉛筆或顏色筆設計一個代表你小隊的標誌。",
-        "desc_en": "Draw a symbol that represents your patrol — pencils, colours, anything goes.",
+        "title_zh": "設計一枚活動章", "title_en": "Design an activity badge",
+        "desc_zh": "用鉛筆或顏色筆設計一個代表童軍活動的標誌。",
+        "desc_en": "Draw a symbol for a Scout activity — pencils, colours, anything goes.",
     },
     {
         "emoji": "🏃", "category": "fun",

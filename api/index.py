@@ -1,6 +1,6 @@
 """Vercel entry point — the official platform, served as a serverless function.
 
-This is the production door for 港島第八十二旅童軍團. It sets the *official*
+This is the production door for 香港童軍總會荃灣第7旅. It sets the *official*
 defaults before the Flask app is imported:
 
 * ``DEMO_LOGIN`` / ``SEED_DEMO`` — **off**. No one-tap demo accounts and no

@@ -2,8 +2,45 @@
 {% block title %}{{ L('登入', 'Sign in') }}{% endblock %}
 {% block body_attrs %}class="scene-body"{% endblock %}
 {% block shell %}
-
-{# ══ the full-screen camp scene — the three animals are the buttons ══ #}
+{% if not patrols %}
+<div class="screen login-neutral">
+  <div class="narrow names-card card pad-lg">
+    <div class="auth-brand">
+      <span class="tw7-mark" aria-hidden="true">TW7</span>
+      <div>
+        <h1 style="margin:0">{{ L(settings.unit_name_zh, settings.unit_name_en) }}</h1>
+        <p class="muted" style="margin:.2rem 0 0">{{ L('選擇你的姓名登入', 'Choose your name to sign in') }}</p>
+      </div>
+    </div>
+    {% if scouts %}
+      <div class="tile-grid member-login-grid" style="margin-top:1.1rem">
+        {% for scout in scouts %}
+          <a class="name-tile" style="--i: {{ loop.index0 }}"
+             href="{{ url_for('auth_routes.scout_password', user_id=scout.id) }}">
+            <span class="name-tile-body">
+              <span class="nm-zh">{{ scout.display_name_zh or scout.display_name_en }}</span>
+              {% if scout.display_name_en and scout.display_name_en != scout.display_name_zh %}
+                <span class="small muted">{{ scout.display_name_en }}</span>
+              {% endif %}
+            </span>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty" style="margin-top:1rem"><span class="empty-emoji">🐣</span>{{ L('領袖尚未開設成員帳戶。', 'A leader has not created member accounts yet.') }}</div>
+    {% endif %}
+    <div class="divider"></div>
+    <div class="spread wrap">
+      <span class="lang-switch">
+        <a href="{{ url_for('set_language', code='zh', next='/login') }}" class="{{ 'active' if lang != 'en' else '' }}">中文</a>
+        <a href="{{ url_for('set_language', code='en', next='/login') }}" class="{{ 'active' if lang == 'en' else '' }}">English</a>
+      </span>
+      <a class="btn" href="{{ url_for('auth_routes.leader_login_page') }}">🧭 {{ L('領袖登入', 'Leader sign-in') }}</a>
+    </div>
+  </div>
+</div>
+{% else %}
+{# ══ legacy patrol sign-in, retained for existing data sets ══ #}
 <div class="scene-login" id="scene-login">
   <img class="scene-img" src="{{ url_for('static', filename='img/mascots/scene.jpg') }}"
        width="1920" height="1048" alt="" draggable="false">
@@ -48,11 +85,7 @@
   </div>
 
   <div class="scene-hud tr">
-    <span class="scene-logo">
-      <img src="{{ url_for('static', filename='img/brand/82hkg-logo.webp') }}"
-           width="900" height="483" alt="{{ L(settings.unit_name_zh, settings.unit_name_en) }}"
-           draggable="false">
-    </span>
+    <span class="scene-logo"><span class="tw7-mark" aria-label="TW7">TW7</span></span>
   </div>
 
   {# the only other door on this page: the leaders' #}
@@ -112,6 +145,7 @@
     </div>
   </div>
 </div>
+{% endif %}
 
-<script src="{{ url_for('static', filename='js/login.js') }}?v={{ asset_v('js/login.js') }}"></script>
+{% if patrols %}<script src="{{ url_for('static', filename='js/login.js') }}?v={{ asset_v('js/login.js') }}"></script>{% endif %}
 {% endblock %}

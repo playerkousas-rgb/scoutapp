@@ -4,8 +4,7 @@
 <div class="screen">
   <div class="narrow card pad-lg">
     <div class="crumbs"><a href="{{ url_for('auth_routes.login') }}">‹ {{ L('返回', 'Back') }}</a></div>
-    <img class="card-logo" src="{{ url_for('static', filename='img/brand/82hkg-logo.webp') }}"
-         width="900" height="483" alt="{{ L(settings.unit_name_zh, settings.unit_name_en) }}">
+    <span class="tw7-mark card-logo" aria-label="TW7">TW7</span>
     <h1>{{ L('領袖登入', 'Leader sign-in') }}</h1>
     <p class="muted small">{{ L('領袖可以編輯內容、管理帳戶、審批提交。', 'Leaders edit content, manage accounts and review submissions.') }}</p>
     {% if error_zh %}
@@ -39,7 +38,7 @@
       <label class="field">
         <span>{{ L('領袖代碼', 'Leader code') }}</span>
         <input type="password" name="password" autocomplete="current-password"
-               inputmode="numeric" placeholder="0082" required autofocus>
+               placeholder="{{ L('輸入領袖密碼', 'Enter leader password') }}" required autofocus>
       </label>
       <input type="hidden" name="username" value="{{ username or '' }}">
       <button class="btn primary" type="submit" style="width:100%">{{ L('登入', 'Sign in') }}</button>

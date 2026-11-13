@@ -778,13 +778,16 @@ class Store:
     def seed_demo(self) -> None:
         """Placeholder content so every screen is visible on first run."""
         now = now_iso()
+        # Legacy patrol fixtures are kept only for compatibility tests and old
+        # data migrations. Official TW7 deployments never call seed_demo().
+        self.save_setting("patrols", ["Tiger", "Otter", "Seagull"])
         self.ensure_catalog()                     # 示範部署一樣要有正式目錄
         self.upgrade_flag_game()                  # 第 7 項升級成旗桿遊戲
         hashed, salt = hash_password(DEMO_PASSWORDS["leader"])
         leader = self.insert("users", {
             "role": "leader", "username": "leader1", "password_hash": hashed, "password_salt": salt,
             "display_name_zh": "陳領袖", "display_name_en": "Leader Chan", "email": "",
-            "scout_no": "", "section": "leader", "patrol": "", "unit": "Sample Scout Group",
+            "scout_no": "", "section": "leader", "patrol": "", "unit": "7th Tsuen Wan Scout Group",
             "avatar": "🧭", "status": "active", "must_change_password": False,
             "show_on_leaderboard": False, "created_at": now, "created_by": "seed",
         })
@@ -817,9 +820,9 @@ class Store:
                 "display_name_zh": zh, "display_name_en": en,
                 # everyone but the never-signed-in demo has an email on file —
                 # that address is what lets them reset their own password
-                "email": "" if never_signed_in else f"{username}@82hkg.example",
+                "email": "" if never_signed_in else f"{username}@tw7.example",
                 "scout_no": f"S{1000 + index}", "section": "scout", "patrol": patrol,
-                "unit": "Sample Scout Group", "avatar": avatar, "status": "active",
+                "unit": "7th Tsuen Wan Scout Group", "avatar": avatar, "status": "active",
                 "must_change_password": never_signed_in, "show_on_leaderboard": True,
                 "created_at": now, "created_by": leader["id"],
             })

@@ -118,7 +118,7 @@ def test_the_patrol_list_groups_scouts_and_marks_who_is_open(store, new_scout, s
 
 
 def test_the_pop_up_blocks_a_scout_until_the_profile_is_complete(store, new_scout, leader_client):
-    for path in ("/home", "/daily", "/cards", "/feedback"):
+    for path in ("/home", "/daily", "/feedback"):
         page = new_scout.get(path).get_data(as_text=True)
         assert "data-profile-setup" in page, path
         assert "請先完成個人檔案" in page, path
@@ -187,15 +187,14 @@ def _complete(new_scout):
     })
 
 
-def test_the_card_fields_come_from_the_profile_itself(store, new_scout):
+def test_the_card_picture_uses_the_saved_profile_without_a_prompt_form(store, new_scout):
     _complete(new_scout)
     page = new_scout.get("/profile").get_data(as_text=True)
-    assert "card-gen-fields" in page and "生成我的卡圖" in page
-    fields = page[page.index("card-gen-fields"):]
-    # patrol mascot as partner, experience and share as the two moves,
-    # position and interests as the ability — no second form to fill
-    assert "海鷗" in fields and "童軍經驗" in fields and "想和大家分享的事" in fields
-    assert "我喜歡教新成員綁繩結" in fields and "小隊長" in fields
+    assert "生成我的卡圖" in page
+    assert "童軍經驗" in page and "想和大家分享的事" in page
+    assert "我喜歡教新成員綁繩結" in page and "小隊長" in page
+    assert "card-gen-fields" not in page and 'name="prompt"' not in page
+    assert "GOOGLE_SCRIPT_URL" not in page and "promptVaultToken" not in page
 
 
 def test_a_card_picture_needs_a_complete_profile_first(store, new_scout):
@@ -210,9 +209,11 @@ def test_a_card_picture_needs_the_leaders_key(store, new_scout, monkeypatch):
     reply = new_scout.post("/profile/card-image", json={"prompt": "畫一張卡"})
     assert reply.status_code == 503
     assert reply.get_json()["error"] == "card_no_key"
+    # Client prompts are ignored; an empty or arbitrary body cannot bypass the
+    # server-built profile prompt or the leader-controlled API key.
     reply = new_scout.post("/profile/card-image", json={"prompt": " "})
-    assert reply.status_code == 400
-    assert reply.get_json()["error"] == "card_prompt"
+    assert reply.status_code == 503
+    assert reply.get_json()["error"] == "card_no_key"
 
 
 def test_a_card_picture_is_made_and_kept_on_the_card(store, new_scout, app, monkeypatch):
@@ -227,8 +228,12 @@ def test_a_card_picture_is_made_and_kept_on_the_card(store, new_scout, app, monk
 
     reply = new_scout.post("/profile/card-image", json={"prompt": "畫一張 Pokémon 卡"})
     assert reply.status_code == 200
-    assert seen == {"api_key": "test-key", "model": "gemini-2.5-flash-image",
-                    "prompt": "畫一張 Pokémon 卡"}
+    assert seen["api_key"] == "test-key"
+    assert seen["model"] == "gemini-2.5-flash-image"
+    assert "我喜歡教新成員綁繩結" in seen["prompt"]
+    assert "露營、繩結" in seen["prompt"]
+    assert "Pokémon" not in seen["prompt"]
+    assert "Do not invent a patrol" in seen["prompt"]
     row = store.get("profiles", new_scout.id)
     assert row["card_image_url"].startswith("/uploads/") and row["card_generated_at"]
     page = new_scout.get("/profile").get_data(as_text=True)

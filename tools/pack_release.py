@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pack the platform into ONE zip you can keep: deliverables/82hkg-platform-<date>.zip
+"""Pack the platform into ONE zip you can keep: deliverables/tw7-platform-<date>.zip
 
 What goes in:
   · every file needed to run or redeploy the app (app.py, scout/, templates/,
@@ -48,7 +48,7 @@ def included(rel: pathlib.Path) -> bool:
 def main() -> None:
     stamp = datetime.date.today().isoformat()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    target = OUT_DIR / f"82hkg-platform-{stamp}.zip"
+    target = OUT_DIR / f"tw7-platform-{stamp}.zip"
 
     rows: list[tuple[str, int]] = []
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
@@ -68,8 +68,8 @@ def main() -> None:
             zf.write(path, arcname=rel.as_posix())
             rows.append((rel.as_posix(), path.stat().st_size))
 
-        manifest = [f"港島第八十二旅童軍團 · 平台打包 {stamp}",
-                    "82nd Hong Kong Group — Scout Platform release pack", "",
+        manifest = [f"香港童軍總會荃灣第7旅 · 平台打包 {stamp}",
+                    "7th Tsuen Wan Scout Group — Scout Platform release pack", "",
                     "解壓後：scout-platform-py/ 是平台，uploads/ 是你上載的原稿。",
                     "Unzip, then read scout-platform-py/docs/ALL-DOCS.md first.", "",
                     "不含（可重新產生）：.git、離線示範 HTML、data/db 執行時資料。",

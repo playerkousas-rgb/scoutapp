@@ -91,8 +91,12 @@ def patrol_groups(st, viewer_id: str) -> list[dict]:
     scouts = [u for u in st.list("users") if u.get("role") == "scout"]
     scouts.sort(key=lambda u: (str(u.get("display_name_en") or u.get("display_name_zh") or ""),
                                str(u.get("username") or "")))
-    order = [str(p) for p in (st.settings_cached().get("patrols") or ["Tiger", "Otter", "Seagull"])]
-    seen = [p for p in order if any(u.get("patrol") == p for u in scouts)]
+    order = [str(p) for p in (st.settings_cached().get("patrols") or [])]
+    if not order:
+        order = [""]
+        for user in scouts:
+            user["patrol"] = ""
+    seen = [p for p in order if any(str(u.get("patrol") or "") == p for u in scouts)]
     seen += sorted({str(u.get("patrol") or "") for u in scouts} - set(seen))
     groups = []
     for patrol in seen:
@@ -148,7 +152,7 @@ def card_fields(person: dict, profile: dict, stats: dict, overall: dict) -> dict
         "ability": (f"Ability: {position}. {profile['interests']}" if english
                     else f"特性：{position}。{profile['interests']}"),
         "finish_pokemon": "Full Art Rainbow Holographic Foil",
-        "card_number": str(person.get("scout_no") or "82HKG"),
+        "card_number": str(person.get("scout_no") or "TW7"),
     }
 
 
@@ -212,8 +216,23 @@ def save():
     return redirect(url_for("profile_routes.page"))
 
 
-CARD_PROMPT_MAX = 12000
 CARD_WAIT_SECONDS = 30
+
+
+def _card_prompt(person: dict, profile: dict, stats: dict, overall: dict) -> str:
+    """Build the image prompt on the server; clients cannot spend the key on arbitrary prompts."""
+    fields = card_fields(person, profile, stats, overall)
+    return (
+        "Create one vertical 2:3 illustrated youth Scout achievement card. "
+        "Family-friendly hand-painted adventure style; no trademarked characters, no unit logo, "
+        "no patrol animal and no readable personal contact details. Use a forest green, teal, "
+        "warm cream and brass palette. Leave a clean card border and use these details only as "
+        f"creative themes: member name {fields['name']!r}; role {profile['position']!r}; "
+        f"interests {profile['interests']!r}; Scout experience {profile['experience']!r}; "
+        f"something to share {profile['share']!r}; earned badges {stats.get('badges_done', 0)}; "
+        f"completed tasks {overall.get('tasks_done', 0)}. Do not invent a patrol, scarf, district, "
+        "leader or anniversary. Return the picture only."
+    )
 
 
 def _call_gemini(api_key: str, model: str, prompt: str) -> tuple[bytes, str]:
@@ -250,20 +269,16 @@ def _card_display_url(uploaded: dict) -> str:
 def card_image():
     """Generate this scout's AI card picture and keep it on the profile.
 
-    The browser builds the prompt with the card generator's remote prompt
-    vault; this route only lends it the platform's Gemini key (which never
-    reaches the page) and stores the finished picture.
+    The server builds a constrained prompt from the saved profile, uses the
+    platform's Gemini key (which never reaches the page), and stores the image.
     """
     st = store()
     profile = load_profile(st, g.user["id"])
     if not profile_complete(profile):
         return fail(400, "profile_incomplete", "請先完成個人檔案，才可以生成卡圖。",
                     "Please complete your profile before making a card picture.")
-    body = request.get_json(silent=True) or {}
-    prompt = str(body.get("prompt") or "").strip()
-    if not prompt or len(prompt) > CARD_PROMPT_MAX:
-        return fail(400, "card_prompt", "卡圖資料不完整，請再試一次。",
-                    "The card details are incomplete — please try again.")
+    progress = progress_for(st, g.user["id"])
+    prompt = _card_prompt(g.user, profile, progress["stats"], progress["overall"])
     if profile["card_generated_at"]:
         try:
             last = datetime.fromisoformat(profile["card_generated_at"].replace("Z", "+00:00"))
