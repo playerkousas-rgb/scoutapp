@@ -1,0 +1,525 @@
+{
+  "_note": "遊戲 2｜迷霧渡口（第 5 項：明瞭及接納童軍誓詞、規律和銘言）。三關：銘言 → 誓詞 → 規律。每一關先讀教學牌，再把木板的次序排好，鋪成一條橋。次序錯了，木板會滑到河裡，教學牌會再講一次，然後重新排那一塊。內容（牌上的字、講解、全部界面文字）都在這個檔案，改字不用改程式。",
+  "title_zh": "迷霧渡口",
+  "title_en": "The misty crossing",
+  "task_code": "M05",
+  "kind": "bridge",
+  "stage_count": 3,
+  "images": {
+    "bank": "bank",
+    "crossed": "crossed",
+    "slip": "slip"
+  },
+  "intro": {
+    "image": "bank",
+    "kicker_zh": "遊戲 2 · 迷霧渡口",
+    "kicker_en": "Game 2 · The misty crossing",
+    "title_zh": "河水擋住了去路",
+    "title_en": "The river is in the way",
+    "paras_zh": [
+      "走出山洞不久，霧氣又濃起來。前面是一條河，水聲很響；對岸的路消失在白茫茫之中。",
+      "河邊放着一疊木板，兩根木樁綁着繩。要把木板一塊一塊鋪上去，才可以過河。",
+      "木板只能順着次序鋪 —— 銘言、誓詞、規律，全部都有它們自己的次序。"
+    ],
+    "paras_en": [
+      "Not far from the cave the mist thickens again. A river runs loud in front of you, and the trail on the far side disappears into the white.",
+      "A stack of planks lies on the bank beside two rope-bound posts. Every board must be laid before the crossing will hold.",
+      "And they go down in order — the motto, the Promise and the Law each have their own order."
+    ],
+    "action_zh": "拿起第一塊木板",
+    "action_en": "Pick up the first plank",
+    "hint_zh": "三關：銘言（最易）→ 誓詞 → 規律（最長）。",
+    "hint_en": "Three stages: the motto (easiest) → the Promise → the Law (the longest)."
+  },
+  "planks": {
+    "image": "bank",
+    "kicker_zh": "第 {n} 關 · 鋪木板",
+    "kicker_en": "Stage {n} · lay the planks",
+    "pool_zh": "河邊的木板",
+    "pool_en": "Planks on the bank",
+    "slot_zh": "第 {i} 塊",
+    "slot_en": "Plank {i}",
+    "empty_zh": "（空）",
+    "empty_en": "(empty)",
+    "tip_zh": "點木板，就會鋪到橋上。次序對了，木板就牢牢扣住；錯了，它會滑到河裡。先記住教學牌上的次序 —— 想再看一次，按下面的「再看一次教學牌」。",
+    "tip_en": "Tap a board and it goes onto the bridge. In the right order the span holds; in the wrong order it slips into the river. Keep the order from the teaching card in mind — press “Read the teaching card again” for another look.",
+    "progress_zh": "第 {n} / {total} 關 · 已鋪 {done} / {planks} 塊",
+    "progress_en": "Stage {n} of {total} · {done} of {planks} laid",
+    "again_zh": "重新排這一關",
+    "again_en": "Lay this stage again",
+    "label_zh": "原文與說明",
+    "label_en": "The words, and what they mean"
+  },
+  "wrong": {
+    "image": "slip",
+    "kicker_zh": "木板滑到河裡了",
+    "kicker_en": "The plank slides into the river",
+    "title_zh": "這一塊放得太早",
+    "title_en": "That board went down too early",
+    "lead_zh": "木板要順着次序放，一塊錯了，橋就接不上。上面的教學牌再講一次，之後重新排那一塊。",
+    "lead_en": "The boards only hold in order — one out of place and the crossing breaks. The teaching card goes through it again; then lay that board once more.",
+    "recap_title_zh": "教學牌再講一次",
+    "recap_title_en": "The teaching card, once more",
+    "retry_zh": "明白了，再排一次",
+    "retry_en": "Understood — lay them again",
+    "note_zh": "次序照著上列原文再排一次：{chain}",
+    "note_en": "Lay the boards again in the order of the words above: {chain}",
+    "title_row_zh": "這一行要重排",
+    "title_row_en": "This line comes up again",
+    "lead_row_zh": [
+      "木板要順着次序放。放錯的一塊，只把這一行收回河岸 —— 上面已經釘好的行留在橋上，不用由頭再排。",
+      "上面的教學牌再講一次這一段，之後只排這一行。"
+    ],
+    "lead_row_en": [
+      "The boards only hold in order. A board laid out of turn takes up just this line — the rows already pinned above stay on the bridge.",
+      "The teaching card goes through the passage once more; then lay this line again."
+    ],
+    "retry_row_zh": "明白了，再排這一行",
+    "retry_row_en": "Understood — lay this line"
+  },
+  "built": {
+    "image": "bank",
+    "kicker_zh": "第 {n} 關完成",
+    "kicker_en": "Stage {n} done",
+    "title_zh": "這一段接上了",
+    "title_en": "This stretch holds",
+    "chain_zh": "次序是：{chain}",
+    "chain_en": "In order: {chain}",
+    "next_zh": "讀下一塊教學牌 →",
+    "next_en": "Read the next teaching card →",
+    "note_zh": "木板牢牢扣住了。走過去，前面還有下一段。",
+    "note_en": "The boards are locked in place. Walk on — the next stretch is ahead."
+  },
+  "crossed": {
+    "image": "crossed",
+    "kicker_zh": "遊戲 2 · 過橋了",
+    "kicker_en": "Game 2 · across",
+    "title_zh": "腳下的木板一塊塊接上",
+    "title_en": "Board by board, the crossing holds",
+    "paras_zh": [
+      "最後一塊木板扣好，整條橋在霧裡穩穩地橫過河面。你一步一步走過去，腳下的木板沒有再動。",
+      "銘言的兩個字、誓詞的四句、規律的七條，你都排對了次序。不過第 5 項還未完成 —— 領袖在對岸等你，要聽你親口講一次。"
+    ],
+    "paras_en": [
+      "The last board locks in and the whole crossing holds steady over the water. You walk across, and nothing under your feet shifts.",
+      "The motto's two characters, the Promise's four lines and the Law's seven points are all in the right order. But item 5 is not finished yet — your leader is waiting on the far bank to hear you say them."
+    ],
+    "action_zh": "走進霧裡，繼續行程",
+    "action_en": "Walk on into the mist",
+    "badge_zh": "回到會員章",
+    "badge_en": "Back to the badge",
+    "pass_zh": "領袖批准了 ✓",
+    "pass_en": "Your leader approved it ✓",
+    "pass_title_zh": "考核通過，第 5 項完成",
+    "pass_title_en": "The check is passed — item 5 is yours",
+    "pass_note_zh": "你在領袖面前背誦了銘言、誓詞、規律，也講了日常生活怎樣實行。宣誓那天，這三樣你會再講一次。",
+    "pass_note_en": "You have said the motto, the Promise and the Law to your leader, and told how you live the Law each day. You will say them once more at your investiture.",
+    "save_error_zh": "未能記錄過橋",
+    "save_error_en": "Could not record your crossing",
+    "save_retry_zh": "你的次序仍在這個畫面，請再試一次。未成功儲存前不要離開。",
+    "save_retry_en": "Your order is still on screen. Please retry before leaving; the crossing has not been saved.",
+    "retry_zh": "再次記錄過橋",
+    "retry_en": "Try saving again",
+    "again_zh": "再走一次渡口",
+    "again_en": "Cross the river again",
+    "submitting_zh": "正在記錄過橋…",
+    "submitting_en": "Saving your crossing…"
+  },
+  "assess": {
+    "kicker_zh": "遊戲 2 · 已提交",
+    "kicker_en": "Game 2 · sent",
+    "title_zh": "已提交，等領袖批准",
+    "title_en": "Sent — waiting for your leader",
+    "lead_zh": "你已經過了橋。找領袖考核這兩樣：",
+    "lead_en": "You are across. See your leader for two things:",
+    "points_zh": [
+      "背誦：銘言、誓詞、規律 —— 次序和字句都要對。",
+      "講解：你在日常生活裡，怎樣實行童軍規律。"
+    ],
+    "points_en": [
+      "Recite: the motto, the Promise and the Law — in order, word for word.",
+      "Explain: how you keep the Scout Law in your daily life."
+    ],
+    "after_zh": "領袖在領袖帳戶看到你的過橋紀錄；按「批准」之後，第 5 項就會變成 ✓。",
+    "after_en": "Your leader sees your crossing in the leader account; once they press approve, item 5 turns into a ✓.",
+    "go_next_zh": "先去玩遊戲 3",
+    "go_next_en": "Play game 3 first",
+    "refresh_zh": "重新檢查",
+    "refresh_en": "Check again",
+    "refresh_checking_zh": "正在查看領袖批了沒有…",
+    "refresh_checking_en": "Checking whether your leader has approved…",
+    "refresh_waiting_zh": "領袖還未批准 — 稍後再按一次。",
+    "refresh_waiting_en": "Your leader has not approved yet — try again in a moment.",
+    "refresh_error_zh": "檢查不到，請再按一次。",
+    "refresh_error_en": "Could not check — press again.",
+    "demo_approve_zh": "示範：模擬領袖批准",
+    "demo_approve_en": "Demo: simulate the leader’s approval",
+    "demo_note_zh": "離線示範沒有領袖帳戶；按一下，就當作領袖在帳戶裡批准了。",
+    "demo_note_en": "The offline demo has no leader account — one press stands in for the leader’s approval.",
+    "waiting_zh": "⏳ 已提交 · 等領袖批准",
+    "waiting_en": "⏳ Sent · waiting for your leader"
+  },
+  "labels": {
+    "home_zh": "主頁",
+    "home_en": "Home",
+    "badge_zh": "會員章",
+    "badge_en": "Badge",
+    "hud_zh": "迷霧渡口",
+    "hud_en": "The misty crossing",
+    "card_kicker_zh": "第 {n} 關 · 教學牌",
+    "card_kicker_en": "Stage {n} · teaching card",
+    "card_title_zh": "先看清楚，再鋪木板",
+    "card_title_en": "Read it first, then lay the boards",
+    "card_button_zh": "去鋪木板",
+    "card_button_en": "Lay the planks",
+    "card_reopen_zh": "再看一次教學牌",
+    "card_reopen_en": "Read the teaching card again",
+    "leave_kicker_zh": "離開遊戲？",
+    "leave_kicker_en": "Leave the game?",
+    "leave_title_zh": "中途離開就要由河邊重新開始",
+    "leave_title_en": "Leaving now means starting again at the river bank",
+    "leave_lead_zh": "鋪橋的次序會全部取消，回來時要由第一塊木板重新鋪過。",
+    "leave_lead_en": "The planks you have laid will be cleared, and you will start again from the first board.",
+    "leave_stay_zh": "繼續過橋",
+    "leave_stay_en": "Stay and finish",
+    "leave_go_zh": "離開遊戲",
+    "leave_go_en": "Leave the game",
+    "wrong_kept_zh": "橋上已鋪好的 {n} 塊木板保留不變。",
+    "wrong_kept_en": "The {n} boards already pinned stay on the bridge."
+  },
+  "stages": [
+    {
+      "n": 1,
+      "image": "stage-motto",
+      "icon": "🧭",
+      "name_zh": "銘言",
+      "name_en": "The motto",
+      "teach": {
+        "title_zh": "童軍銘言：準備",
+        "title_en": "The Scout motto: Be Prepared",
+        "lead_zh": "童軍銘言，一字一句照著讀：",
+        "lead_en": "The motto, word for word:",
+        "sentences_zh": [
+          "準備",
+          "Be Prepared"
+        ],
+        "sentences_en": [
+          "準備",
+          "Be Prepared"
+        ],
+        "details_zh": [
+          "事先想清楚、隨時做得來；遇到事情，不等別人叫，也不等事情變壞。",
+          "英文的銘言，意思與「準備」相同。"
+        ],
+        "details_en": [
+          "Think ahead and be ready — do not wait to be told, and do not wait for things to go wrong.",
+          "The same motto in English."
+        ],
+        "note_zh": "拼木板時：兩個字分成兩塊木板（準、備），英文的一句是一塊；兩句各排一行。",
+        "note_en": "On the bridge: the two characters are two boards (準, 備) and the English line is one; each line is laid in its own row."
+      },
+      "planks": [
+        {
+          "key": "m1",
+          "zh": "準",
+          "en": "準",
+          "line": 1
+        },
+        {
+          "key": "m2",
+          "zh": "備",
+          "en": "備",
+          "line": 1
+        },
+        {
+          "key": "m3",
+          "zh": "Be Prepared",
+          "en": "Be Prepared",
+          "line": 2
+        }
+      ],
+      "rows_zh": [
+        "中文",
+        "英文"
+      ],
+      "rows_en": [
+        "Chinese",
+        "English"
+      ]
+    },
+    {
+      "n": 2,
+      "image": "stage-promise",
+      "icon": "🤝",
+      "name_zh": "童軍誓詞",
+      "name_en": "The Scout Promise",
+      "teach": {
+        "title_zh": "童軍誓詞：四句",
+        "title_en": "The Scout Promise",
+        "lead_zh": "童軍誓詞，一字一句照著讀：",
+        "lead_en": "The Promise, word for word:",
+        "sentences_zh": [
+          "我願以信譽為誓，竭盡所能；",
+          "對神明，對國家，盡責任；",
+          "對別人，要幫助；",
+          "對規律，必遵行。"
+        ],
+        "sentences_en": [
+          "On my honour, I promise that I will do my best",
+          "to do my duty to God and to my Country",
+          "to help other people",
+          "and to keep the Scout Law."
+        ],
+        "details_zh": [
+          "第一句是承諾本身：以自己的信譽作保證，答應了的事就盡全力去做。",
+          "對神明、對國家盡童軍的本分。",
+          "別人需要的時候，出手相助，日行一善。",
+          "承諾遵守童軍規律；誓詞最後才提規律，因為盡責、助人已在前面的句子答應了。"
+        ],
+        "details_en": [
+          "The promise itself: on your honour, once you have promised, you do your best.",
+          "Your duty to God and to your country.",
+          "Help other people when they need it — a good turn every day.",
+          "Keep the Scout Law; it comes last, after duty and help have been promised."
+        ],
+        "note_zh": "拼木板時：每句切成詞語，一塊木板就是一個詞，連「對」都是一塊；同一句的木板排成一行，四句共四行。「對」出現四次，四塊完全一樣，次序對了，用哪一塊都可以。",
+        "note_en": "On the bridge: each sentence is cut into words — one board, one word, and 對 is a board of its own; a sentence's words are laid in that sentence's own row, four rows for four sentences. 對 comes up four times and the four boards are identical: any copy will do, as long as the order is right."
+      },
+      "planks": [
+        {
+          "key": "p1",
+          "zh": "我願",
+          "en": "我願",
+          "line": 1
+        },
+        {
+          "key": "p2",
+          "zh": "以信譽",
+          "en": "以信譽",
+          "line": 1
+        },
+        {
+          "key": "p3",
+          "zh": "為誓",
+          "en": "為誓",
+          "line": 1
+        },
+        {
+          "key": "p4",
+          "zh": "竭盡所能",
+          "en": "竭盡所能",
+          "line": 1
+        },
+        {
+          "key": "p5",
+          "zh": "對神明",
+          "en": "對神明",
+          "line": 2
+        },
+        {
+          "key": "p6",
+          "zh": "對國家",
+          "en": "對國家",
+          "line": 2
+        },
+        {
+          "key": "p7",
+          "zh": "盡責任",
+          "en": "盡責任",
+          "line": 2
+        },
+        {
+          "key": "p8",
+          "zh": "對別人",
+          "en": "對別人",
+          "line": 3
+        },
+        {
+          "key": "p9",
+          "zh": "要幫助",
+          "en": "要幫助",
+          "line": 3
+        },
+        {
+          "key": "p10",
+          "zh": "對規律",
+          "en": "對規律",
+          "line": 4
+        },
+        {
+          "key": "p11",
+          "zh": "必遵行",
+          "en": "必遵行",
+          "line": 4
+        }
+      ],
+      "rows_zh": [
+        "第一句",
+        "第二句",
+        "第三句",
+        "第四句"
+      ],
+      "rows_en": [
+        "Line 1",
+        "Line 2",
+        "Line 3",
+        "Line 4"
+      ]
+    },
+    {
+      "n": 3,
+      "image": "stage-law",
+      "icon": "⚖️",
+      "name_zh": "童軍規律",
+      "name_en": "The Scout Law",
+      "teach": {
+        "title_zh": "童軍規律：七條",
+        "title_en": "The Scout Law",
+        "lead_zh": "童軍規律，一條一條照著讀：",
+        "lead_en": "The Law, word for word:",
+        "sentences_zh": [
+          "童軍信用為人敬。",
+          "童軍待人要忠誠。",
+          "童軍友善兼親切。",
+          "童軍相處如手足。",
+          "童軍勇敢不怕難。",
+          "童軍愛物更惜陰。",
+          "童軍自重又重人。"
+        ],
+        "sentences_en": [
+          "A Scout is to be trusted.",
+          "A Scout is loyal.",
+          "A Scout is friendly and considerate.",
+          "A Scout belongs to the world-wide family of Scouts.",
+          "A Scout has courage in all difficulties.",
+          "A Scout makes good use of time and is careful of possessions and property.",
+          "A Scout has self respect and respect for others."
+        ],
+        "details_zh": [
+          "誠實守信，別人自然敬重你、可以信賴你。",
+          "對朋友、對團、對家人都要忠誠。",
+          "待人友善，顧及別人的感受。",
+          "世界各地的童軍都是兄弟姊妹。",
+          "遇到困難不退縮，勇敢面對。",
+          "愛護物件，也珍惜光陰、善用時間。",
+          "尊重自己，也尊重別人。"
+        ],
+        "details_en": [
+          "A Scout is honest and trustworthy, and so is trusted.",
+          "Loyal to friends, to the troop and to family.",
+          "Friendly and considerate of other people.",
+          "Scouts everywhere are brothers and sisters.",
+          "Courageous when things are hard.",
+          "Careful of possessions, and good use of time.",
+          "Self-respect, and respect for others."
+        ],
+        "note_zh": "拼木板時：每一條切成三個詞（「童軍」加兩個詞），一條排成一行，七條共七行。七塊「童軍」完全一樣，次序對了，用哪一塊都可以。",
+        "note_en": "On the bridge: each point is cut into three words — 童軍 plus two — and each point is laid in its own row: seven points, seven rows. The seven 童軍 boards are identical: any copy will do, so long as the order is right."
+      },
+      "planks": [
+        {
+          "key": "l1",
+          "zh": "童軍信用",
+          "en": "童軍信用",
+          "line": 1
+        },
+        {
+          "key": "l2",
+          "zh": "為人敬",
+          "en": "為人敬",
+          "line": 1
+        },
+        {
+          "key": "l3",
+          "zh": "童軍待人",
+          "en": "童軍待人",
+          "line": 2
+        },
+        {
+          "key": "l4",
+          "zh": "要忠誠",
+          "en": "要忠誠",
+          "line": 2
+        },
+        {
+          "key": "l5",
+          "zh": "童軍友善",
+          "en": "童軍友善",
+          "line": 3
+        },
+        {
+          "key": "l6",
+          "zh": "兼親切",
+          "en": "兼親切",
+          "line": 3
+        },
+        {
+          "key": "l7",
+          "zh": "童軍相處",
+          "en": "童軍相處",
+          "line": 4
+        },
+        {
+          "key": "l8",
+          "zh": "如手足",
+          "en": "如手足",
+          "line": 4
+        },
+        {
+          "key": "l9",
+          "zh": "童軍勇敢",
+          "en": "童軍勇敢",
+          "line": 5
+        },
+        {
+          "key": "l10",
+          "zh": "不怕難",
+          "en": "不怕難",
+          "line": 5
+        },
+        {
+          "key": "l11",
+          "zh": "童軍愛物",
+          "en": "童軍愛物",
+          "line": 6
+        },
+        {
+          "key": "l12",
+          "zh": "更惜陰",
+          "en": "更惜陰",
+          "line": 6
+        },
+        {
+          "key": "l13",
+          "zh": "童軍自重",
+          "en": "童軍自重",
+          "line": 7
+        },
+        {
+          "key": "l14",
+          "zh": "又重人",
+          "en": "又重人",
+          "line": 7
+        }
+      ],
+      "rows_zh": [
+        "第一條",
+        "第二條",
+        "第三條",
+        "第四條",
+        "第五條",
+        "第六條",
+        "第七條"
+      ],
+      "rows_en": [
+        "Law 1",
+        "Law 2",
+        "Law 3",
+        "Law 4",
+        "Law 5",
+        "Law 6",
+        "Law 7"
+      ]
+    }
+  ]
+}

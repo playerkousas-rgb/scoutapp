@@ -1,0 +1,497 @@
+{% extends "base.html" %}
+{% block title %}{{ L(quest.title_zh, quest.title_en) }}{% endblock %}
+
+{% block content %}
+{% set animal = url_for('static', filename='img/mascots/' ~ (user.patrol | lower) ~ '.webp') %}
+{% set beats = quest.beats_zh if lang != 'en' else quest.beats_en %}
+{% set done_areas = stages | selectattr('done') | list | length %}
+{% set games_done = stages | selectattr('game_done') | list | length %}
+{% set next_stage = (stages | selectattr('next') | list | first) %}
+{% if next_stage and next_stage.game_ready and next_stage.game_task and not badge.locked %}
+  {% set play = url_for('scout_routes.task_cave', task_id=next_stage.game_task.id)
+                if next_stage.game_kind == 'cave'
+                else (url_for('scout_routes.task_bridge', task_id=next_stage.game_task.id)
+                      if next_stage.game_kind == 'bridge'
+                      else (url_for('scout_routes.task_drill', task_id=next_stage.game_task.id)
+                            if next_stage.game_kind == 'drill'
+                            else (url_for('scout_routes.task_flag', task_id=next_stage.game_task.id)
+                                  if next_stage.game_kind == 'flag'
+                                  else url_for('scout_routes.task_player', task_id=next_stage.game_task.id)))) %}
+{% else %}
+  {% set play = None %}
+{% endif %}
+<div class="crumbs">
+  <a href="{{ url_for('scout_routes.home') }}">{{ L('主頁', 'Home') }}</a><span class="breadcrumb-arrow">›</span>
+  <a href="{{ url_for('scout_routes.badges') }}">{{ L('我的獎章', 'My awards') }}</a><span class="breadcrumb-arrow">›</span>
+  {{ L(badge.title_zh, badge.title_en) }}
+</div>
+
+{# the page the story plays over: hidden while the cards are open, fully
+   readable without the script #}
+<div class="quest-page" data-quest-page>
+
+{# ── the island: the same hand-drawn world the scout signed in with ─────── #}
+{% if request.args.get('started') %}
+  {# Casting off begins the voyage; no hidden task is awarded. #}
+  <div class="quest-opening" data-celebrate="1">
+    <span class="quest-opening-star">🧭</span>
+    <div class="grow">
+      <strong>{{ L(quest.credited_title_zh, quest.credited_title_en) }}</strong>
+      <p class="small" style="margin:.2rem 0 0">{{ L(quest.credited_body_zh, quest.credited_body_en) }}</p>
+    </div>
+
+  </div>
+{% endif %}
+
+{% if not started %}
+<section class="story-hero" data-story-hero>
+  <img class="story-art" src="{{ url_for('static', filename='img/mascots/quest-island.jpg') }}" alt="">
+  <div class="story-veil"></div>
+  <span class="story-spark" style="--i:0" aria-hidden="true">✨</span>
+  <span class="story-spark" style="--i:1" aria-hidden="true">⭐</span>
+  <span class="story-spark" style="--i:2" aria-hidden="true">✨</span>
+  <div class="story-body">
+    <span class="chip story-chip">🧭 {{ L('荒島逃生', 'Island escape') }} · {{ L('進度性獎章', 'Progressive award') }} {{ badge.order_index }} / 5</span>
+    <h1 class="story-title">{{ L(quest.story_title_zh, quest.story_title_en) }}</h1>
+    <p class="story-lead">{{ L(quest.story_lead_zh, quest.story_lead_en) }}</p>
+    <div class="story-beacon">
+      <span class="story-beacon-face">
+        <img src="{{ animal }}" alt="">
+      </span>
+      <span class="story-beacon-text">
+        <strong>🔥 {{ L(quest.route_zh, quest.route_en) }}</strong>
+        <span class="small">🎮 {{ L(quest.game_rule_zh, quest.game_rule_en) }}</span>
+      </span>
+      <span class="story-beacon-meter">
+        <span class="story-beacon-bar"><span style="width: {{ (done_areas * 100 // stages | length) }}%"></span></span>
+        <span class="small">{{ done_areas }} / {{ stages | length }} {{ L('個區域已走過', 'areas crossed') }}
+          · 🎮 {{ games_done }} / {{ stages | length }} {{ L('個遊戲已完成', 'games cleared') }}</span>
+      </span>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── the story, one beat per line of the trail ──────────────────────────── #}
+{% if started %}
+{# A scout who has begun the walk needs no retelling: the page opens on the
+   escape route itself — where they stand, how far, one button. The story can
+   be rewatched from the small 重看故事 link (leader's ask, 2026-10-18). #}
+<header class="quest-back" data-quest-head>
+  <span class="chip story-chip">🧭 {{ L('荒島逃生', 'Island escape') }} ·
+    {{ L('進度性獎章', 'Progressive award') }} {{ badge.order_index }} / 5</span>
+  <h1 class="quest-back-title">{{ L(quest.title_zh, quest.title_en) }}</h1>
+  <p class="quest-progress" data-quest-progress>
+    <span class="quest-progress-bar" data-quest-bar><span style="width: {{ (done_areas * 100 // stages | length) }}%"></span></span>
+    <span>🌿 <span data-areas-count>{{ done_areas }} / {{ stages | length }} {{ L('個區域已走過', 'areas crossed') }}</span></span>
+    <span>🎮 <span data-games-count>{{ games_done }} / {{ stages | length }} {{ L('個遊戲已完成', 'games cleared') }}</span></span>
+  </p>
+  <a class="quest-replay" data-intro-replay
+     href="{{ url_for('scout_routes.badge_detail', badge_id=badge.id, intro=1) }}">
+    🎬 {{ L('重看故事', 'Watch the story again') }}</a>
+</header>
+{% endif %}
+<ol class="story-path">
+  {% if not started %}
+  <li class="story-step" data-cheer="✨,{{ beats[0].icon }}">
+    <span class="story-step-mark"><span class="story-step-icon">{{ beats[0].icon }}</span></span>
+    <div class="story-step-body">
+      <strong>{{ beats[0].title }}</strong>
+      <p>{{ beats[0].text }}</p>
+    </div>
+  </li>
+
+  {% for beat in beats[1:] %}
+    <li class="story-step" data-cheer="✨,{{ beat.icon }}">
+      <span class="story-step-mark"><span class="story-step-icon">{{ beat.icon }}</span></span>
+      <div class="story-step-body">
+        <strong>{{ beat.title }}</strong>
+        <p>{{ beat.text }}</p>
+      </div>
+    </li>
+  {% endfor %}
+  {% endif %}
+
+  {# the last beat of the story is the trail itself: five areas to the beach #}
+  <li class="story-step story-step-trail" id="map" data-cheer="🗺️,🛶">
+    <span class="story-step-mark"><span class="story-step-icon">🗺️</span></span>
+    <div class="story-step-body">
+      <strong>{{ L(quest.trail_title_zh, quest.trail_title_en) }}</strong>
+      {% if not started %}
+      <p>{{ L(quest.trail_lead_zh, quest.trail_lead_en) }}</p>
+      {% endif %}
+
+      {# The locations are readable in-place: no radio selection, no hidden
+         first-area panel. The only gameplay link is below the map. #}
+      <div class="stage-map stage-map-direct">
+        {# the map itself: aged paper, one dashed trail, the beach at the end.
+           The doodles are drawn in ink (inline SVG), not emoji, so the chart
+           looks the same on every device. All of it is decoration. #}
+        <div class="map-canvas">
+          {# the island itself (2026-10-18): sea around the shore, one river down
+             from the northern bay, and a wash of terrain under each of the five
+             stops — jungle, mist, ridge, valley, bluff — drawn in the same ink
+             as the doodles. The five cards sit on top; none of this is a button. #}
+          {% include 'scout/_map_art.html' %}
+
+          <ol class="stage-chips" aria-label="{{ L('五個區域的尋寶圖', 'Map of five locations') }}">
+            {% for stage in stages %}
+              <li class="stage-chip{{ ' stage-chip-first' if loop.first }}{{ ' is-done' if stage.done }}{{ ' is-here' if stage.next }}"
+                  data-stage="{{ stage.n }}">
+                <div class="stage-chip-card"{% if stage.next %} aria-current="step"{% endif %}>
+                  <span class="stage-chip-pin">
+                    <span class="stage-chip-num">{{ stage.n }}</span>
+                    <span class="stage-chip-icon">{{ stage.icon }}</span>
+                  </span>
+                  <span class="stage-chip-content">
+                    {# the eyebrow — and the big hero card it names — stand on the
+                       scout's own next stop, so a finished first stop steps back
+                       into the trail and the light moves on with the walk #}
+                    {% if stage.next %}
+                      <span class="stage-chip-eyebrow">{% if loop.first %}{{ L('第一站 · 從這裡開始', 'FIRST STOP · START HERE') }}{% else %}{{ L('▶ 下一站 · 你在這裡', '▶ NEXT STOP · YOU ARE HERE') }}{% endif %}</span>
+                    {% endif %}
+                    <strong class="stage-chip-name">{{ L(stage.name_zh, stage.name_en) }}</strong>
+                    <span class="stage-chip-game">🎮 {{ L('遊戲', 'Game') }} {{ stage.game_n }} ·
+                      {{ L(stage.game_name_zh, stage.game_name_en) if stage.game_ready else L('即將推出', 'Coming soon') }}</span>
+                    {# no description on the map: the marker carries the place,
+                       the game and where it stands — what the game is about is
+                       read inside the game itself (leader's ask, 2026-10-18) #}
+                    <span class="stage-chip-state" data-game-state>
+                      {% if stage.done %}✔ {{ L('已完成', 'Cleared') }}
+                      {% elif stage.crossed %}⏳ {{ L('已提交 · 等領袖批准', 'Sent · waiting for your leader') }}
+                      {% elif stage.studied %}⏳ {{ L('已提交 · 等領袖批准', 'Sent · waiting for your leader') }}
+                      {% elif not stage.game_ready %}🔒 {{ L('等待領袖加入', 'Waiting for your leader') }}
+                      {% elif stage.pending %}⏳ {{ L('等領袖核實', 'With a leader') }}
+                      {% else %}{{ L('等你開始', 'Ready to play') }}{% endif %}
+                    </span>
+                    {# A crossing that is laid, or a manual that is studied, waits
+                       on the leader's approval in the leader account: the walk has
+                       moved on, and the badge page shows the same ⏳. #}
+                    {% if (stage.crossed or stage.studied) and stage.game_ready and stage.game_task and not badge.locked %}
+                      <a class="stage-chip-replay" data-code="stage-{{ stage.n }}"
+                         href="{{ url_for('scout_routes.badge_requirements', badge_id=badge.id) }}#task-{{ stage.game_task.code }}">
+                        ⏳ {{ L('看批准狀態', 'Check the approval') }}
+                      </a>
+                    {% endif %}
+                    {# A cleared game keeps a small door of its own: the bottom
+                       button carries on to the NEXT game, and a scout who wants
+                       to walk this one again taps here. #}
+                    {% if stage.done and stage.game_ready and stage.game_task and not badge.locked %}
+                      <a class="stage-chip-replay" data-replay="stage-{{ stage.n }}"
+                         href="{{ url_for('scout_routes.task_cave', task_id=stage.game_task.id)
+                                  if stage.game_kind == 'cave'
+                                  else (url_for('scout_routes.task_bridge', task_id=stage.game_task.id)
+                                        if stage.game_kind == 'bridge'
+                                        else (url_for('scout_routes.task_drill', task_id=stage.game_task.id)
+                                              if stage.game_kind == 'drill'
+                                              else (url_for('scout_routes.task_flag', task_id=stage.game_task.id)
+                                                    if stage.game_kind == 'flag'
+                                                    else url_for('scout_routes.task_player', task_id=stage.game_task.id)))) }}">
+                        🎮 {{ L('再玩一次', 'Play again') }}
+                      </a>
+                    {% endif %}
+                  </span>
+                  {% if stage.next %}
+                    <span class="stage-chip-me" title="{{ L('你在這裡', 'You are here') }}">
+                      <img src="{{ animal }}" alt="">
+                    </span>
+                  {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ol>
+        </div>
+
+        <p class="map-legend small muted">
+          ✔ {{ L('已完成', 'Cleared') }} · ● {{ L('你在這裡', 'You are here') }}
+          · ── {{ L('虛線就是你的路線', 'the dashed line is your route') }}
+        </p>
+
+        <div class="story-raft">
+          <span class="story-raft-art">🛶</span>
+          <strong>{{ L(quest.trail_last_zh, quest.trail_last_en) }}</strong>
+          <span class="small muted">{{ L(quest.trail_last_note_zh, quest.trail_last_note_en) }}</span>
+          <span class="story-raft-meter small">{{ done_areas }} / {{ stages | length }}</span>
+        </div>
+      </div>
+    </div>
+  </li>
+</ol>
+
+{# A single, obvious action below the map. No cast-off form or second Play
+   button inside a location. Future games use the same action when ready. #}
+<div class="story-launch" data-journey-launch>
+  {% if badge.earned %}
+    <p class="story-launch-note">🎖 {{ L('五個遊戲全部完成！你已考獲會員章。',
+                                      'All five games cleared! You have earned the Membership Badge.') }}</p>
+  {% elif next_stage and next_stage.game_ready and next_stage.game_task and not badge.locked %}
+    <p class="small muted story-launch-note">{{ L(quest.first_stage_note_zh, quest.first_stage_note_en)
+      if next_stage.n == 1 else L('直接進入「' ~ next_stage.game_name_zh ~ '」。',
+                                   'Go straight into “' ~ next_stage.game_name_en ~ '”.') }}</p>
+  {% else %}
+    <p class="story-launch-note" data-journey-wait>🔒 {{ L('下一個遊戲尚未開放，請等待領袖加入。',
+                                                              'The next game is not available yet. Your leader will add it later.') }}</p>
+  {% endif %}
+  {% if next_stage and next_stage.n == 1 %}
+    <p class="story-launch-note" data-journey-wait hidden>🔒 {{ L('遊戲 2 尚未開放，請等待領袖加入。',
+                                                                     'Game 2 is not available yet. Your leader will add it later.') }}</p>
+  {% endif %}
+  {% if not badge.earned and next_stage and next_stage.game_ready and next_stage.game_task and not badge.locked %}
+    <a class="btn primary big" data-journey-play href="{{ play }}">
+      🎮 {{ L(quest.start_zh, quest.start_en) if next_stage.n == 1
+            else L('繼續歷險 · 進入遊戲 ' ~ next_stage.game_n,
+                   'Continue the journey · Game ' ~ next_stage.game_n) }}
+    </a>
+  {% endif %}
+</div>
+</div>
+
+{# ── the opening story (2026-10-18, remade same day): a first-time scout is
+   told how the escape works in nine picture cards laid INSIDE the page —
+   the top bar's shortcuts stay within reach as the way out. Each card is a
+   picture with the story riding on it in a parchment note; the third card
+   is the treasure map itself, the five stops numbered along the dashed
+   route. Dismissing it (skip or the final 出發) writes the same start_quest
+   mark the old cast-off did, so the badge page opens on the escape route
+   from then on. #}
+{% if intro %}
+<section class="quest-story" data-quest-intro hidden
+         aria-label="{{ L('荒島逃生 · 開場故事', 'Island escape · the opening story') }}"
+         data-started="{{ '1' if started else '0' }}"
+         data-start-url="{{ url_for('scout_routes.start_quest', badge_id=badge.id) }}">
+  <div class="quest-story-frame">
+    <header class="quest-story-head">
+      <span class="quest-story-brand">
+        <svg class="quest-story-rose" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M12 3.8 L13.8 10.2 L20.2 12 L13.8 13.8 L12 20.2 L10.2 13.8 L3.8 12 L10.2 10.2 Z"
+                fill="currentColor" fill-opacity=".55"/>
+        </svg>
+        {{ L('荒島逃生 · 開場故事', 'The island escape · the opening story') }}
+      </span>
+      <span class="quest-story-pages"><span data-story-page>1</span> / {{ intro_slides | length }}</span>
+      <a class="quest-story-skip" data-intro-skip
+         href="{{ url_for('scout_routes.badge_detail', badge_id=badge.id,
+                          started=1 if not started else None) }}">
+        {{ L('跳過故事', 'Skip the story') }} ✕</a>
+    </header>
+
+    <div class="quest-story-stage">
+      {% for slide in intro_slides %}
+      <figure class="quest-slide{% if loop.first %} is-on{% endif %}{% if slide.kind == 'map' %} is-map{% endif %}"
+              data-slide="{{ loop.index }}"{% if not loop.first %} hidden{% endif %}>
+        <div class="quest-slide-art">
+          {% if slide.kind == 'map' %}
+            {# the escape route itself, drawn on the real treasure map: the
+               island, the river, the dashed walk through the five stops —
+               numbered in walking order, the first one lit as the way in #}
+            <div class="map-canvas map-canvas-story" role="img"
+                 aria-label="{{ L('荒島尋寶圖：虛線由第 1 站走到第 5 站，直到沙灘上的木筏',
+                                  'The island treasure map: the dashed trail runs from stop 1 to stop 5, to the raft') }}">
+              {% include 'scout/_map_art.html' %}
+              <ol class="story-stops" aria-hidden="true">
+                {% for stop in [(1, 14, 22), (2, 50, 18), (3, 79, 30), (4, 65, 65), (5, 30, 76)] %}
+                <li class="{{ 'is-start' if stop[0] == 1 }}" style="left: {{ stop[1] }}%; top: {{ stop[2] }}%;">{%- if stop[0] == 1 -%}<span class="story-stop-tag">{{ L('起點', 'START') }}</span>{%- endif -%}{{ stop[0] }}</li>
+                {% endfor %}
+              </ol>
+            </div>
+          {% else %}
+            <img src="{{ url_for('static', filename=slide.img) }}"
+                 alt="{{ L(slide.alt_zh, slide.alt_en) if slide.alt_zh else '' }}">
+            <span class="quest-slide-shade" aria-hidden="true"></span>
+          {% endif %}
+        </div>
+        <figcaption class="quest-slide-cap">
+          {% if slide.emblem %}
+          <span class="quest-slide-emblem">
+            <img src="{{ url_for('static', filename=slide.emblem) }}"
+                 alt="{{ L(slide.title_zh, slide.title_en) }}">
+          </span>
+          {% endif %}
+          <span class="quest-slide-kicker">{{ L(slide.kicker_zh, slide.kicker_en) }}</span>
+          <strong class="quest-slide-title">{{ L(slide.title_zh, slide.title_en) }}</strong>
+          <p class="quest-slide-text">{{ L(slide.text_zh, slide.text_en) }}</p>
+        </figcaption>
+      </figure>
+      {% endfor %}
+    </div>
+
+    <div class="quest-story-nav">
+      <button type="button" class="btn ghost quest-story-prev" data-intro-prev hidden>
+        ‹ {{ L('上一張', 'Back') }}</button>
+      <div class="quest-intro-dots">
+        {% for slide in intro_slides %}
+        <button type="button" class="quest-dot{% if loop.first %} is-on{% endif %}"
+                data-slide-dot="{{ loop.index }}" aria-label="{{ L('第', 'Slide') }} {{ loop.index }}"></button>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn quest-intro-next" data-intro-next>
+        {{ L('下一張', 'Next') }} ›</button>
+      <a class="btn primary big quest-intro-begin" data-intro-begin hidden
+         href="{{ play or url_for('scout_routes.badge_detail', badge_id=badge.id,
+                                  started=1 if (not play and not started) else None) }}">
+        {%- if play %}🧭 {{ L('出發 · 進入第 1 站', 'Set off · location 1') }}
+         {%- else %}🗺️ {{ L('查看逃生路線', 'Open your escape route') }}{%- endif %}</a>
+    </div>
+  </div>
+</section>
+
+<script>
+/* The opening story: nine cards inside the page, one button at a time — no
+   scrolling, and the top bar's shortcuts stay clickable as the way out.
+   The card under the story keeps the page itself (hidden while the tale is
+   told, readable without this script). Only leaving the story touches the
+   server: the same start_quest mark the old cast-off wrote, sent with a
+   beacon while the link itself carries the scout on. (The offline demo
+   swaps navigation for its own pane router.) */
+(function () {
+  'use strict';
+  var box = document.querySelector('[data-quest-intro]');
+  var api = { dismissed: !box, reset: function () {}, reopen: function () {} };
+
+  if (box) {
+    /* the cards are markup-only until this script wakes up: without it the
+       story stays folded and the full island page remains readable */
+    var scope = box.closest('.pane') || document;
+    var page = scope.querySelector('[data-quest-page]');
+    var slides = [].slice.call(box.querySelectorAll('[data-slide]'));
+    var dots = [].slice.call(box.querySelectorAll('[data-slide-dot]'));
+    var counter = box.querySelector('[data-story-page]');
+    var prevBtn = box.querySelector('[data-intro-prev]');
+    var nextBtn = box.querySelector('[data-intro-next]');
+    var beginBtn = box.querySelector('[data-intro-begin]');
+    var idx = 0;
+
+    /* the ink adapts to the picture: measure the band the note sits on and
+       turn the words to lantern light whenever the scene behind is dark */
+    var noteTheme = function (slide) {
+      if (slide._noteThemeDone) return;
+      slide._noteThemeDone = true;
+      var img = slide.querySelector('.quest-slide-art img');
+      if (!img) return;                       /* the map card sits on paper */
+      var apply = function () {
+        try {
+          var c = document.createElement('canvas');
+          c.width = 64; c.height = 24;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, img.naturalHeight * .62, img.naturalWidth,
+                        img.naturalHeight * .38, 0, 0, 64, 24);
+          var d = ctx.getImageData(0, 0, 64, 24).data, lum = 0;
+          for (var i = 0; i < d.length; i += 4) {
+            lum += .2126 * d[i] + .7152 * d[i + 1] + .0722 * d[i + 2];
+          }
+          if (lum / (d.length / 4) / 255 < .45) slide.classList.add('is-note-dark');
+        } catch (err) { /* untainted pictures only; ink stays as it is */ }
+      };
+      if (img.complete && img.naturalWidth) apply();
+      else img.addEventListener('load', apply, { once: true });
+    };
+    slides.forEach(function (s) {             /* measured early, no flash */
+      if (window.requestIdleCallback) window.requestIdleCallback(function () { noteTheme(s); });
+      else setTimeout(function () { noteTheme(s); }, 250);
+    });
+    var show = function (n) {
+      idx = Math.max(0, Math.min(slides.length - 1, n));
+      slides.forEach(function (s, i) {
+        s.hidden = i !== idx;
+        if (i === idx) {                    /* the card settles in like a page */
+          s.classList.remove('is-on'); void s.offsetWidth; s.classList.add('is-on');
+        }
+      });
+      dots.forEach(function (d, i) { d.classList.toggle('is-on', i === idx); });
+      if (counter) counter.textContent = idx + 1;
+      if (prevBtn) prevBtn.hidden = idx === 0;
+      if (nextBtn) nextBtn.hidden = idx === slides.length - 1;
+      if (beginBtn) beginBtn.hidden = idx !== slides.length - 1;
+    };
+    var open = function () {
+      box.hidden = false;
+      if (page) page.style.display = 'none';
+      show(0);
+    };
+    api.reset = function () { show(0); };
+    api.reopen = function () { api.dismissed = false; open(); };
+    api.dismissed = false;
+
+    var markStarted = function () {
+      if (box.getAttribute('data-started') === '1') return;
+      var url = box.getAttribute('data-start-url');
+      try {
+        /* a beacon survives the page unload: leaving the story always marks
+           the quest begun, whichever link carries the scout on */
+        if (navigator.sendBeacon) { navigator.sendBeacon(url); return; }
+        fetch(url, { method: 'POST', keepalive: true,
+                     headers: { 'X-Requested-With': 'fetch' } });
+      } catch (err) { /* the walk carries on even if the mark misses */ }
+    };
+    var leave = function (pane) {
+      /* offline the pane router is the whole world: no mark to send */
+      if (!window.OFFLINE_DEMO) markStarted();
+      api.dismissed = true;
+      box.hidden = true;
+      if (page) page.style.display = '';
+      window.OFFLINE_DEMO.go(pane);
+    };
+
+    box.addEventListener('click', function (ev) {
+      var dot = ev.target.closest('[data-slide-dot]');
+      if (dot) { ev.preventDefault(); show(+dot.getAttribute('data-slide-dot') - 1); return; }
+      if (ev.target.closest('[data-intro-prev]')) { ev.preventDefault(); show(idx - 1); return; }
+      if (ev.target.closest('[data-intro-next]')) { ev.preventDefault(); show(idx + 1); return; }
+      var skip = ev.target.closest('[data-intro-skip]');
+      if (skip) {
+        ev.preventDefault();
+        if (window.OFFLINE_DEMO) { ev.stopPropagation(); leave('quest-map'); }
+        else {
+          markStarted(); api.dismissed = true;
+          box.hidden = true; if (page) page.style.display = '';
+          window.location.href = skip.href;
+        }
+        return;
+      }
+      var begin = ev.target.closest('[data-intro-begin]');
+      if (begin) {
+        if (window.OFFLINE_DEMO) { ev.preventDefault(); ev.stopPropagation(); leave('cave'); }
+        else {
+          markStarted(); api.dismissed = true;
+          box.hidden = true; if (page) page.style.display = '';   /* the link sails on */
+        }
+      }
+    });
+    box.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowRight') { ev.preventDefault(); show(idx + 1); }
+      else if (ev.key === 'ArrowLeft') { ev.preventDefault(); show(idx - 1); }
+      else if (ev.key === 'Escape') {
+        ev.stopPropagation();
+        var skip = box.querySelector('[data-intro-skip]');
+        if (skip) skip.click();
+      }
+    });
+    open();
+  }
+
+  /* 重看故事 lives on the started page, which this script is not part of —
+     online it is a plain link to ?intro=1; offline (one document, many panes)
+     the binding is made once the whole file is parsed, and the same link then
+     re-opens the story pane from its first card. */
+  var bindReplay = function () {
+    var link = document.querySelector('[data-intro-replay]');
+    if (!link || link._storyBound) return;
+    link._storyBound = true;
+    link.addEventListener('click', function (ev) {
+      if (!window.OFFLINE_DEMO) return;      // online: let the link navigate
+      ev.preventDefault(); ev.stopPropagation();
+      api.reopen();
+      window.OFFLINE_DEMO.go('quest-intro');
+    });
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindReplay);
+  } else {
+    bindReplay();
+  }
+  window.QUEST_INTRO = api;
+})();
+</script>
+{% endif %}
+{% endblock %}
