@@ -34,7 +34,7 @@
 | SMTP 主機 | `smtp.gmail.com` |
 | 連接埠 | `587` |
 | 加密 | `TLS (587)` |
-| 寄件人 | 單位 Gmail，例如 `82hkg@gmail.com` |
+| 寄件人 | 單位 Gmail，例如 `tw7.scout@example.com` |
 | 帳號 | 同一個 Gmail |
 | 應用程式密碼 | 貼上那 16 個字 |
 | 重設連結有效期 | 預設 60 分鐘 |

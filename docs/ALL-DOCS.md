@@ -1,8 +1,8 @@
-# 港島第八十二旅童軍團 · 平台文件（合訂本）
+# 香港童軍總會荃灣第7旅 · 平台文件（合訂本）
 
-**82nd Hong Kong Group — Scout Platform: the complete manual**
+**7th Tsuen Wan Scout Group — Scout Platform: the complete manual**
 
-_由 `tools/compile_docs.py` 於 2026-10-18 由各份文件自動合併；改動任何一份之後請重新執行。_
+_由 `tools/compile_docs.py` 於 2026-11-13 由各份文件自動合併；改動任何一份之後請重新執行。_
 
 _Compiled automatically from the individual documents below. Edit the source file, then run the tool again._
 
@@ -36,362 +36,111 @@ _Compiled automatically from the individual documents below. Edit the source fil
 
 <sub>來源 / source: `README.md`</sub>
 
-Scout Progress Platform — the **Python edition**. Flask renders the scout and
-leader pages; the interactive cave uses JavaScript. Scouts explore an island,
-leaders manage content and accounts. The app supports local JSON or Google Sheets
-storage and includes a one-file offline walkthrough.
+**7th Tsuen Wan Scout Group · Scout Progress Platform**
 
-> **童軍版**：童軍登入 → 看進度 → 玩任務 → 考取進度性獎章 → 儲積分換獎品。
-> **領袖版**：編輯獎章與任務、開設童軍帳戶、審批提交、發公告、管理獎品。
+這個 Flask 平台讓童軍查看獎章與任務、玩通用童軍學習遊戲、提交進度，並讓領袖管理帳戶、內容、審批與公告。
 
----
+> **目前狀態：未可正式收集資料。** 新 Google Sheet／Drive 尚未接妥。Vercel 的 `/tmp` 只供短暫預覽，會被回收；正式帳戶、進度及積分必須等 `/health` 顯示 `storage: sheets` 後才建立。
 
-### 文件：一份合訂本 + 一個打包 / the docs, compiled and packed
+### 荃灣第 7 旅客製
 
-全部說明文件（README、LAUNCH、DEMO、docs/01–06）已合併成單一檔案
-**`docs/ALL-DOCS.md`** —— 有目錄、可整份閱讀或列印。改過任何一份之後：
+- 品牌：`香港童軍總會荃灣第7旅`／`7th Tsuen Wan Scout Group`
+- 暫用中性 `TW7` 文字標記，沒有沿用其他旅團 Logo
+- 不設小隊；登入頁直接列出所有成員姓名
+- 領袖開戶、成員清單、忘記密碼及個人檔案均不要求小隊
+- 沒有搬入舊旅團帳戶、進度、積分或審計紀錄
+- 按用戶確認，原有 50 題會員章題庫及通用遊戲內容保持不變
+- 龍虎榜及獎品預設關閉；抽卡保留原有通用內容，但已移除舊小隊卡
 
-    python3 tools/compile_docs.py      # 重新合併 → docs/ALL-DOCS.md
+### 本機啟動
 
-要把整個平台（程式、內容、文件、截圖、原稿）收成一個檔案保存或交收：
-
-    python3 tools/pack_release.py      # → ../deliverables/82hkg-platform-<日期>.zip
-
-打包不含 `.git`（歷史在 GitHub）、離線示範 HTML（可用 `tools/offline_demo.py`
-重新產生）與執行時資料；包內有 `MANIFEST.txt` 逐項列出內容。
-
----
-
-### 離線示範 / the offline demo — `demo-preview.html`
-
-> 產生方式：`python3 tools/offline_demo.py`（單檔 13MB+，**不入 git**；
-> Vercel 部署時會在 build 步驟重新產生並放到網站根目錄，網址不變）。
-> 遊戲 2 單檔版：`python3 tools/bridge_preview.py`。
-
-One file, no server, no cookies: **13 screens**, from camp login and the
-leader-code card to the scout's home, the single「你被困住了！」island page,
-and **game 1 in location 1**. A name without a password opens the first-time
-form — password and a valid email are required, nothing typed into it is kept,
-and Home · 獎章 · 會員章 · 山洞 all bounce back to it until it is filled in. The syllabus reference is no longer linked from
-the game page (its old direct URL still works on the live server). Game information is
-printed directly on the first map stop; a single bottom button opens the cave,
-without selecting a pin or casting off. Inside: four teaching murals with timelines, 50 questions, photo-backed
-dead ends, local grading and a review of actual mistakes. Leaving the game
-opens a cancelable restart reminder; staying preserves the current answers,
-and leaving means the next visit starts from the entrance. A pass returns to
-the map at **1/5 games cleared**. Games 2–5 remain locked until the leader
-provides them. There is **no separate paper**, cast-off step, or automatic task
-credit just for opening the game. Every screen has a 🏠 主頁 exit. The leader editors require the
-live server; the offline file shows a clickable leader-home sample.
-
-    python3 tools/offline_demo.py     # rebuild it after any template/style change
-
-五個瀏覽器檢查（需要 `bash tools/bootstrap_browser.sh` 一次、以及 `LD_LIBRARY_PATH=/tmp/syslibs`）：
-
-| 檢查 | 走什麼 |
-|---|---|
-| `tools/checks/check_offline.py` | 離線先走第一次登入的必填表單（重複密碼、長度、電郵四種錯誤＋繞路全部擋下），再走完四段壁畫和 50 題（包括死路），按實際選項算分，返回地圖見 1/5；檢查主頁出口、領袖代碼與 0 個外部請求 |
-| `tools/checks/check_cave.py` | 實機版山洞：中文全程、一次錯路、伺服器評分與錯題回顧；示範童軍進度在檢查後還原 |
-| `tools/checks/check_bridge.py` | 實機版**迷霧渡口**（遊戲 2）：三關教學牌、錯板重講、鋪滿過橋、伺服器記錄與會員章進度；跑完用 `demo_reset.blank_game` 還原示範童軍 |
-| `tools/check_sheets.py` | 部署前先驗 Google 試算表：環境變數、金鑰、建立分頁、讀寫與相片上載，逐項報錯並印 `ALL GOOD` |
-| `tools/push.sh` | 把改動提交並推送 GitHub（Vercel 隨自動部署）：`GITHUB_TOKEN=… bash tools/push.sh "說明"`；token 也可放入 `~/.82hkg-github-token` |
-| `tools/bridge_preview.py` | 產生 `bridge-preview.html`：只含遊戲 2 的單檔離線試玩（不需要先過山洞），供領袖試玩及截圖 |
-| `tools/checks/check_cave_editor.py` | 領袖代碼登入、四壁 50 題編輯入口、答案欄位、英語切換和手機版；不更動題庫 |
-| `tools/checks/check_exit.py` | 實機和離線版離開山洞提示：主頁／會員章／頁首、取消保留答案、確認後重入由頭開始，以及英文／手機版 |
-| `tools/checks/check_doors.py` | 會員章兩個入口都到「你被困住了！」；第一區直接展示遊戲資料，頁底單一按鈕直達山洞，不必選位置或「划出去」 |
-
-The live server is the other path, and only lives while a session is open:
-
-    # 正式預設＝沒有示範帳戶：第一次開啟會顯示「建立第一位領袖」。
-    # 想看示範帳戶（demo1/demo2）就加上 DEMO_LOGIN=true SEED_DEMO=true
-    pip install flask && SECRET_KEY=dev DATA_DIR=./data \
-      python3 -m flask --app app run --host 0.0.0.0 --port 5001
-
-### 1. 快速開始 (Quick start)
+需要 Python 3.11+。
 
 ```bash
-cd scout-platform-py
-pip install flask                 # 只有這一個必要套件
-python3 -m flask --app app run --host 0.0.0.0 --port 5001
+python -m venv .venv
+. .venv/bin/activate
+pip install -r requirements-dev.txt
+cp .env.example .env.local
+python app.py
 ```
 
-Open <http://localhost:5001>. A brand-new install seeds sample content so every
-screen is populated — replace it with your own in *Content*.
+開啟 `http://localhost:5001`。空資料庫會先顯示「建立第一位領袖」。
 
-#### 示範登入 (demo sign-in — no passwords to type)
-
-| 帳戶 | 方法 | 看到 |
-|---|---|---|
-| 領袖（示範部署）| `POST /login/demo/demo1` | 領袖後台 |
-| 童軍（示範部署）| `POST /login/demo/demo2` | 童軍主頁 |
-| 直接登入 | 領袖代碼 `0082` | 領袖後台 |
-| 一按即入 | 領袖登入頁的 🧭 示範領袖 / 🎒 示範童軍 | 領袖後台 / 童軍主頁 |
-| 第一次登入 | `POST /login/demo/demo3` | 免密碼進入後**必須**設定密碼 + 電郵，否則不能進入任何童軍頁面 |
-| 直接登入 | `scout01 … scout06 / scout1234` | 童軍帳戶（scout07 吳卓穎 未有密碼 — 按名字即入，示範第一次登入） |
-
-**旅團標誌**：`static/img/brand/82hkg-logo.webp`（由你提供的 JPEG 去背製作，綠色與紅色保持原色、
-邊緣平滑、可放在任何底色上）、`favicon.png`（瀏覽器分頁圖示）、`82hkg-mark.webp`（「82」單字，
-備用）。登入頁右上角有低調的旅團標誌，登入後的頂欄、領袖登入卡與 favicon 亦有標誌。
-
-**名字一律英文行先**：歡迎句、頂欄、龍虎榜、帳戶表、選名頁全部以英文名做主體，中文名在旁邊略小；小隊名同理（TIGER 大字，老虎在下面）。介面文字（按鈕、標籤）仍然是中英雙語，預設中文、可切換。
-
-**登入頁是一張全螢幕營地圖**：三隻小隊吉祥物（老虎 / 水獺 / 海鷗）就站在畫面裡，
-**牠們本身就是按鈕** — 沒有另外的按鈕框。畫面左上角不加標題、底部不顯示示範帳戶、
-不放「忘記密碼」；左上角只有一粒細細的 **中文／English** 語言鍵，右下角只有一個「🧭 領袖登入」，旅團標誌留在右上角。
-- 滑鼠移上去（或 Tab 到）：那隻動物被「打燈」亮起（其餘仍然清楚可見）、畫面徐徐向牠推進，
-  牠名字上方出現跳動的 ▾，底部一行字變成「老虎 · 按一下，我帶你進去」。
-- 按下去：牠的名字放大、粒子四散、播放音效，約 0.6 秒後轉去該小隊的選名頁。
-- 窄視窗仍然是同一張圖，改成三欄：滑到哪一欄，圖就滑過去令那隻動物填滿畫面；
-  只有極窄（≤360px）才退回三張卡片版。
-- 沒有 JavaScript、開啟「減少動態效果」、或用鍵盤：全部都照樣可以進入（每隻動物都是一條普通連結）。
-- 圖檔：`static/img/mascots/scene.jpg`（1920×1048，1.95:1）、`tiger/otter/seagull.webp`（單隻，供卡片與選名頁用）；
-  三隻動物在圖中的位置寫在 `scout/mascots.py` 的 `spot_x` / `spot_w`，換圖時改這兩個數字即可對位。
-- 語言切換在**每一頁**：登入畫面在左上角，登入後在頂欄右邊（中文／EN 兩格），按完留在同一頁；
-  英文版會收起「第二行中文」（小隊名的中文、中文名），中文版照舊保留英文（OTTER 大字、水獺細字）。
-  每日挑戰的遊戲字句（插旗、完成訊息、徽章簿）也跟着語言轉。
-- 忘記密碼**只在密碼頁**（選名頁沒有，因為那時還未需要密碼）、示範帳戶見 `/login/demo/demo1|demo2|demo3`。
-
-童軍登入方式：**小隊 → 姓名**。
-
-> **預覽環境小知識**：Arena 的預覽把網頁放在第三方的 iframe 內，瀏覽器會拒收 cookie。
-> 平台因此把登入憑證同時放在網址（`?sid=…`），所有連結和表單都會自動帶著它 —
-> 所以在預覽、無痕視窗、關掉 cookie 的瀏覽器都一樣登入得到；正常瀏覽器仍然用 cookie。
-
-- **第一次**：按自己的名字直接進入（**毋須密碼**）— 但接著**必須**設定個人密碼並填寫
-  聯絡電郵，兩項齊備才可進入主頁、獎章、山洞或任何童軍頁面；直接輸入網址或呼叫介面
-  也一樣回到這張表單（`setup_required`）。之後每次登入都用這個密碼。
-- **之後**：小隊 → 姓名 → 輸入自己設定的密碼。忘記了按密碼頁的「忘記密碼？」，平台會
-  寄一條**一次性重設連結**到他第一次登入時填的**電郵**，他打開連結就自行設定新密碼
-  （連結 60 分鐘內有效、只可以用一次；設定後舊密碼即時失效）。
-  要在 *設定 → 寄信信箱* 填好單位 Gmail（應用程式密碼）才會寄信，步驟見
-  `docs/03-email-setup.md`；未設定信箱、或帳號還未有電郵時，平台會改用電郵即時重設，
-  docs/04-github.md           把計劃放上 GitHub（備份、版本記錄、三條路徑）
-docs/05-vercel.md          正式上線：Vercel 部署、第一次建立領袖、Google 試算表儲存、上線前檢查清單
-  或由領袖在 *帳戶* 版面按 🔑 代為重設。
-- `scout07 吳卓穎` 保持「未設定密碼」狀態，方便示範第一次進入的情況（每次 `demo3` 進入
-  都會先清空密碼，所以下次仍然由必填表單開始）。
-
----
-
-### 2. 兩種儲存方式 (two storage modes)
-
-| `DATA_DRIVER` | 資料 | 相片 | 適合 |
-|---|---|---|---|
-| `local` (預設) | `./data/db/*.json` | `./data/uploads/` | 試用、單機、離線 |
-| `sheets` | 你的 Google 試算表（一個分頁一個資料表） | 你的 Google Drive 資料夾 | 正式使用，免費，多人即時共用 |
-
-設定 Google 試算表：見 [`docs/02-google-sheets-setup.md`](docs/02-google-sheets-setup.md)。
-
-**與 Node 版共用同一份試算表**：分頁名稱、欄位名稱、JSON 儲存格格式、密碼雜湊
-（scrypt, n=2¹⁴, r=8, p=1, dklen=64, hex）全部一致 — 兩邊都可以讀寫同一個檔案，
-帳戶與進度互通（已用測試驗證）。
-
----
-
-### 3. 畫面一覽 (what's where)
-
-#### 童軍 (scout)
-| 網址 | 內容 |
-|---|---|
-| `/` `/home` | 主頁 — 問候（連公告）、我的獎章（五個進度性獎章）、建議（4 則 + 顯示全部；**不顯示積分**） |
-| `/badges` | 獎章路線圖 (journey map)：已完成 ✅ / 進行中 ▶ / 未解鎖 🔒 |
-| `/badges/<id>` | 會員章**只有一個入口頁**：「你被困住了！」故事、五區尋寶圖與沙灘木筏。第一區地圖標記**直接顯示** 🎮 童軍歷史山洞的玩法；頁底單一按鈕直達山洞，沒有選位置或「划出去」步驟。遊戲 2–5 尚未提供時顯示即將推出。進度 = 已通過遊戲數 / 5，**全部五個遊戲**才頒發會員章。地圖底部只有一顆按鈕，指向下一個**未完成而內容齊備**的遊戲；已完成的區域保留一個小門「🎮 再玩一次」（`[data-replay="stage-N"]`），入口只影響這一區，其餘進度不變，全部完成後該按鈕消失。其他獎章依原來方式顯示 |
-| `/badges/<id>?intro=1` | 同一頁；舊書籤的 `?started=1` 仍可開啟原有提示，但不是新流程 |
-| `/badges/<id>/requirements` | 保留給舊書籤的 **童軍綱要參考** 直接網址；會員章地圖不再顯示入口。現有 11 個參考條目與資源不是過關條件；第 4 項直接通往第一區山洞，沒有第二份試卷 |
-| `POST /badges/<id>/start` | 舊入口相容路由；新畫面不再呼叫。直接以 `GET /tasks/<id>/cave` 進入遊戲，不會因進入而加分 |
-| `/tasks/<id>/bridge` | 遊戲 2（M05）**迷霧渡口**：三關（銘言 3 塊 → 誓詞 15 塊 → 規律 21 塊＝全橋 39 塊）。**教學牌給原文與說明**：`teach.sentences_zh／en` 一行一句照著讀（官方措辭） —— 銘言「準備／Be Prepared」，誓詞四句（「我願以信譽為誓，竭盡所能；」「對神明，對國家，盡責任；」「對別人，要幫助；」「對規律，必遵行。」，英文用香港童軍總會官方英文誓詞「On my honour, I promise that I will do my best to do my duty to God and to my Country to help other people and to keep the Scout Law.」），規律七條（「童軍信用為人敬。」…，英文「A Scout is to be trusted.」…）。每句原文之下另給一行 `teach.details_zh／en` 說明（細字、淺色、金色左線，與原文同盒，原文一字不改），最後一行 `teach.note_zh／en` 說明木板怎樣排。**鋪木板時，空格按句子排成一行**：每塊木板帶 `line` 編號（誓詞 4 行、規律 7 行、銘言 2 行），行首寫上「第一句」／「第一條」，該行的木板拼起來就是那一句原文。句子切到最細：誓詞一塊木板一個詞（連「對」也是一塊，共四塊），規律每條切成「童軍」加兩個詞（七塊「童軍」）。**同樣文字的木板可以互換**：判定看木板寫的是甚麼（`zh`／`en`），不看它是哪一塊，只要次序對，用哪一塊都可以；選中的那一塊只會從河岸取走自己。次序錯了木板滑到河裡，教學牌的原文再講一次（不含解釋）。三關鋪滿即可過橋，`POST …/bridge-submit` 逐關比對**木板文字串**，全對才記錄完成並頒 15 分；未完成回 400 `bridge_incomplete`。中途離開同樣先提示，重入由第 1 關開始 |
-| `/tasks/<id>/cave` | 遊戲 1（M04）：四段教學壁畫 + 50 題；畫面分兩層 —— 圖在上、文字卡在下（`.cave-picture` + `.cave-card-wrap`），壁畫時間線、死路、回頭故事與錯題檢討排在圖畫下方、不覆蓋圖畫；遊戲框開到最大（`min(62rem, 100dvh - 6.5rem)`，遊戲頁 `body.is-game` 收起童軍姓名那一行並收窄麵包屑），文字太長時在框內文字區捲動並顯示「▾ 向下捲動」提示（`[data-cave-more]` / `[data-bridge-more]`，捲到最後一行自動消失，右側另有可見捲軸），轉場回到該卡開頭；手機版改為整頁捲動；各組做完才開下一幅壁畫；錯路返回重試。頁首的主頁／會員章等離開入口先提示「重入須從頭開始」，可取消並保留當前作答；作答期間按瀏覽器返回／重新整理則使用瀏覽器的通用離開提示。走到洞口即自動記錄完成 M04（不須額外提交），無論分數多少均通關；分數只供檢討，不用再做試卷。**一段路錯三次**（`content/member-badge/cave.json` → `setbacks.wrong_limit`，可改 4 或 5）：死路卡會先顯示火把剩餘次數，第三次錯便彈出一個回頭故事（火把熄了／走錯路繞回原處／洞裡太悶昏倒／太累要休息／碎石封路／筆記留在壁畫前，六個故事輪流、六張新插畫），按一下回到這一幅壁畫，這一組由第一題重新答；之前錯過的題仍照樣計分。結果卡第一顆按鈕是「🎮 繼續歷程 · 進入遊戲 2」，直接開始下一段歷程（`data-cave-link="next"`）；已通關的一次離開不再顯示「重入須從頭開始」提示，未完成的一次離開仍會提示 |
-| `/tasks/<id>` | 第 4 項的舊連結直接跳山洞；其他任務照常走小測驗／清單／領袖核實流程，但**不會取代**五個區域遊戲 |
-| `/welcome` | 第一次進入的必填頁：新密碼 + 確認 + 聯絡電郵（`required`）。未完成前其他童軍頁面一律導回此頁，介面呼叫回 403 `setup_required`；完成後返回 `?ok=password` |
-| `/rewards` | 獎品 — 積分錢包 + 寶箱（頂欄每頁都已見積分與火焰，這裡看餘額與可換的獎品） |
-| `/history` | 我的紀錄（時間軸） |
-| `/leaderboard` | 龍虎榜 — **三張榜**：① 會員章的各個遊戲（一個遊戲一張小榜：山洞看答對百分比，渡口與步操訓練場看完成時間）② 賺到的積分 ③ 考獲的獎章數；全部 / 本月 / 本週 × 全旅團 / 小隊 |
-
-#### 領袖 (leader)
-| 網址 | 內容 |
-|---|---|
-| `/leader` | 總覽 + 六個快速動作 + 小隊狀況 + 最新提交 |
-| `/leader/content` | 獎章與任務編輯器（上移/下移、草稿/發佈、前置獎章） |
-| `/leader/content/tasks/<id>` | 任務內容：一般小測驗逐行輸入、清單逐行輸入、最少字數…；M04 山洞的題庫另有專用編輯頁 |
-| `/leader/content/tasks/<id>/cave-questions` | **只限領袖**：按四面壁畫選擇並逐題修改山洞的中英文題目、3–4 個選項、正確答案及錯路溫習提示 |
-| `/leader/review` | 審批：批准（可調分）／退回（附評語）／稍後再審 |
-| `/leader/accounts` | 開設帳戶、編輯、停用、重設密碼（重設後該童軍回到「按名字即入」）、CSV 匯入匯出、調整積分 |
-| `/leader/announcements` | 公告（可置頂、可設到期日） |
-| `/leader/rewards` | 獎品目錄（換領功能預設關閉） |
-| `/leader/settings` | 單位名稱、小隊、功能開關（獎品／龍虎榜／連續活躍／上載／公告）— **獎品與龍虎榜預設關閉** |
-| `/leader/audit` | 操作紀錄（誰在何時做了甚麼） |
-
----
-
-### 4. 規則 (the rules, in one place)
-
-* **獎章 (進度性獎章)** — 會員章特別規則：五個區域各有**不同的已提供遊戲**，
-  五個全部通過才頒發；未提供的遊戲**永不自動完成**。其餘進度性獎章使用所有已發佈任務的規則。
-  前置獎章未完成時，後續獎章仍鎖住。
-* **任務類型** — `quiz` 立即評分（合格分數）；`checklist` 全部打勾即完成；
-  `evidence` / `reflection` / `signoff` 提交後**由領袖核實**才完成。
-* **積分** — 只由「積分帳本 (points_ledger)」計算，永不漂移；任務分 + 獎章獎金，
-  童軍只在 `/rewards` 看到餘額。
-* **連續活躍 (streak)** — 每天首次完成任務 +1，中斷則重設，最佳紀錄保留。
-* **龍虎榜** — **三張榜，各比各的**：① 會員章的每個遊戲各自排名 —— 山洞看答對百分比、
-  渡口與步操訓練場看完成時間（愈快愈好），**玩完就上榜，不必等領袖批准**；
-  ② 賺到的積分（換獎品用了積分不影響名次）③ 考獲的獎章數。三張榜不混算，重玩取最好的一次。
-  遊戲 2、3 的時間存在該筆記錄 `answers_json` 的 `_ms`（8 秒–6 小時以外當作沒有計時）。
-* **沒有 XP／等級** — 遊戲元素（圓環、路線圖、彩紙、音效）只是包裝，不是第二套分數。
-* **地圖與綱要** — 五個區域的完成狀態只看各自的**遊戲**；現有的綱要項目
-  只是補充參考，不算五個通關條件。遊戲 1 對應原第 4 項，移到第一區且取代其試卷；
-  第一區不顯示其他任務。進入遊戲沒有隱藏任務獎勵。
-* **童軍不能自行註冊** — 所有帳戶由領袖開設。
-
----
-
-### 4b. 會員章 = 五個遊戲（每個區域一個）
-
-會員章**不是一次考試**：五個區域各有一個遊戲，**五個遊戲全部完成**才可以考取會員章。
-
-| 區域 | 遊戲 | 狀態 |
-|---|---|---|
-| 1 🌿 叢林深處 | **🎮 遊戲 1 · 童軍歷史山洞**（原第 4 項）| ✅ 可玩，沒有其他第一區任務或獨立試卷 |
-| 2 🧭 迷霧小徑 | **🎮 遊戲 2 · 迷霧渡口**（第 5 項：誓詞、規律和銘言）| ✅ 可玩：三關木板次序遊戲（切到單詞，共 39 塊；教學牌只給官方原文，空格按句子排成一行；四塊「對」、七塊「童軍」可以互換），M05 為其任務代號 |
-| 3 ⛰️ 石壁山嶺 | 遊戲 3 待領袖提供 | 🔒 即將推出 |
-| 4 🏞️ 溪谷旗桿 | 遊戲 4 待領袖提供 | 🔒 即將推出 |
-| 5 🌊 臨海山崗 | 遊戲 5 待領袖提供 | 🔒 即將推出 |
-
-尋寶圖上每個區域標記直接顯示遊戲名稱與狀態；**第一區的標記直接展示山洞簡介**，
-其他區域由領袖提供遊戲後亦顯示簡介，尚未提供時顯示「即將推出 · 等待領袖加入」。
-不用點選地點或閱讀地圖下方的另一張卡；**頁面底部只設一個開始歷險／進入下一個遊戲的按鈕**，
-不再有「划出去」或區域內的第二個 Play 連結。通關後如下一個遊戲尚未提供，按鈕暫時改為等待提示。
-玩法頁的燈塔顯示 `🎮 N / 5 個遊戲已完成`。
-
-遊戲設定保存在獎章的 `guide_json.quest.areas[].game`，初始資料來源是
-`content/member-badge/guide.json`。領袖在 **領袖 → 內容 → 會員章 → 五區遊戲設定**
-可修改區域的中英文名稱，並把**新建、已發佈、內容完整**的任務掛到遊戲 2–5；
-如未指派，該區繼續鎖上。第一區的山洞與其 M04 進度固定為遊戲 1，第二區的渡口固定為遊戲 2（M05）；已在使用的區域要更換遊戲，須在表單勾選「確定取代這一區的遊戲」。
-建立／指派任務不會替任何童軍自動通關；舊綱要任務也不會自動充當其他遊戲。
-日後領袖提供遊戲的具體玩法與內容後可在此擴充，現在不預設題目。
-
-若你在更新前已有本機 `data/db/*.json`，只需執行
-`DATA_DIR=./data SEED_DEMO=false python3 tools/migrate_member_five_games.py`
-**一次**，將現有會員章轉為五遊戲規則，並更新山洞的舊預設「80 分合格」文案與分數欄位（領袖自訂文字不覆蓋）；不刪童軍帳戶、進度或積分，已完成的第 4 項仍計作遊戲 1。
-全新資料庫則會直接使用新設定。腳本可重跑，第二次不會更動資料。
-
-### 4c. 領袖逐題修改山洞 / Edit cave questions as a leader
-
-1. 在**實機版**登入領袖帳戶（示範帳戶 `demo1`：登入頁右下方**領袖入口**，代碼 `0082`），打開 **領袖 → 內容 → 會員章 → 第 4 項 M04 → 🕯️ 編輯山洞題目與答案**。在會員章的任務清單也可直接按「🕯️ 編輯題目與答案」。童軍帳戶及離線 HTML 不能儲存編輯。
-2. 以左方四面壁畫的清單選擇一題。修改**中、英文題目**、3–4 個選項，按選項旁的圓點指定**唯一正確答案**，並更新**錯路溫習提示**。前三個中文選項必填、第四個可留空；英文選項留空時暫以中文顯示，但建議填妥譯文。請同時核對選項、答案、溫習提示與壁畫史實。
-3. 按 **💾 儲存這一題**，然後以童軍示範帳戶試玩。每次只改一題，**50 個題號、分組、順序及既有進度均保留**；不需要另一份 80 分試卷。正在玩的童軍仍會按其進洞時看到的題目答案計分；新開始的一局才使用更改後的版本。後台**操作紀錄**會記錄修改。
-4. 切勿把一般測驗內容貼入 M04 的任務編輯欄位，或直接在 `data/db/tasks.json` 調換題號／次序：兩者會破壞四面壁畫與題目的關聯；M04 的普通測驗提交已被封鎖。如要修改壁畫及時間線，應由維護者一併校對 `content/member-badge/cave.json`，那不是這個逐題表單的一部分。
-
-**離線版與實機版不同步。** 實機修改寫入當前資料庫；`demo-preview.html` 是獨立的靜態示範，不能在檔內編輯。若實機使用本專案的**本機 JSON 資料夾**，在專案目錄執行 `python3 tools/offline_demo.py` 後，產生器會在題號／順序一致時，把本機 M04 的 50 題複製進新離線檔；童軍帳戶、進度及積分**不會複製**。若實機使用 Google Sheets，產生器不會自行連接雲端表格；需另備本機題庫來源才能帶入修改。`content/member-badge/item4-question-bank.json` 等是新資料的種子，不會覆蓋已儲存的實機修改。
-
-**English:** Sign in as a leader → Content → Member Badge → M04 → **Edit cave questions & answers**. Pick a question from its wall, edit both prompts and the choices, mark the correct choice, update the wrong-turn recap, and save. IDs/groups remain fixed; previous progress is untouched and an open run is graded against the version it loaded. Rebuild the offline HTML after **local** database edits; Google Sheets content is not imported automatically.
-
-### 5. 遊戲層 (the game feel)
-
-* `static/styles.css` — 與 Node 版共用的設計系統 + 遊戲層（圓環、路線圖、寶箱、巡迴導覽、粒子）。
-* `static/js/effects.js` — 音效（Web Audio 合成，無需檔案）、數字跳動、圓環動畫、
-  粒子爆炸、按壓回饋、第一次進入的三步導覽、每部裝置的音效開關；
-  大冒險另加：`[data-cheer]` 一按即爆星；尋寶圖的第一區資訊一直可見，不用選取標記。
-* `static/js/scout.js` — 以 fetch 提交表單（無 JS 時自動退回普通表單提交）、
-  小測驗進度點、清單勾選音效、相片上載、結果橫幅（合格／不合格／獎章）、
-  遊戲結果與進度更新。舊版「划出去」的 JS 只保留作舊深連結相容；新畫面不使用它。
-* `static/js/leader.js` — 審批佇列即時處理、行內儲存、確認對話框、設定頁小隊標籤。
-* 一切尊重 `prefers-reduced-motion`；沙盒 iframe、無音效裝置、無 localStorage 都仍然可用。
-
----
-
-> 沙盒重置之後（Chromium、Playwright、Python 套件都會消失）先跑一次
-> `bash tools/bootstrap_browser.sh`，然後
-> `LD_LIBRARY_PATH=/tmp/syslibs python3 tools/checks/check_offline.py` 就可以用真瀏覽器
-> 走一次離線示範檔（不會改動任何內容，只會報告）。
-
-### 6. 專案結構 (project layout)
-
-```
-app.py                     Flask app factory · cookies · language · uploads · /health
-scout/
-  schema.py                15 collections (同一份欄位表) · DEFAULT_SETTINGS · 會員章五遊戲種子 + 綱要參考
-  content.py               讀 content/：綱要參考、50 題題庫、山洞場景
-  util.py                  scrypt 密碼 (與 Node byte-compatible) · 日期 (Asia/Hong_Kong)
-  store.py                 Store：settings / stats / uploads / 首次設定 / 示範資料
-  engine.py                所有規則：評分、獎章、帳本、連續活躍、龍虎榜、建議
-  auth.py                  工作階段、各級權限守衛、登入輔助
-  drivers/local.py         JSON 檔（原子寫入）+ 本機相片
-  drivers/sheets.py        Google Sheets v4 + Drive 上載（服務帳戶）
-  routes/auth_routes.py    登入 / 小隊選名（第一次免密碼進入）/ 第一次必填設定 / 忘記密碼（寄出重設連結 + 開啟連結設定新密碼）/ 示範登入
-  mailer.py                寄信：SMTP 設定、一次性重設連結信件（雙語）、測試郵件
-  routes/scout_routes.py   童軍頁面 + 提交 + 上載 + JSON 視圖
-  routes/leader_routes.py  領袖後台全部功能 + CSV + 審批 + 設定
-templates/                 24 個 Jinja 模板 (base · partials/macros · auth · scout · leader)
-                           會員章：badge_intro.html (單一故事＋五區地圖) · badge_detail.html (綱要參考)
-static/                    styles.css (共用設計系統) · js/{effects,scout,leader}.js · img/ (官方獎章圖)
-content/member-badge/      guide.json (11 項指南) · item4-question-bank.json (50 題) · item4-answer-key.json
-tools/migrate_member_five_games.py  更新既有本機示範資料（保留帳戶、成績、積分）
-docs/screens/              實機與離線截圖（故事、遊戲 1 山洞、遊戲 2 迷霧渡口、綱要、主頁；實機由 tools/checks/shots.py 重拍）
-tests/                     pytest 規則、頁面、領袖與離線流程檢查
-```
-
----
-
-### 7. 測試 (tests)
+#### 測試
 
 ```bash
-python3 -m pytest -q          # 五區遊戲規則、舊試卷禁用、領袖配置、離線示範等
+python -m compileall -q app.py api scout tools tests
+python -m pytest -q
 ```
 
-| 檔案 | 覆蓋 |
-|---|---|
-| `test_auth.py` | 小隊→姓名（第一次免密碼）→**必填設定頁**（直接開網址／呼叫介面都擋下）、密碼規則、**電郵重設連結**（只存雜湊、一次性、過期／重複使用擋下、一小時五封上限、寄信失敗不留連結）、**未設定信箱時的電郵即時重設**、示範登入、角色分隔、工作階段 |
-| `test_scout_flow.py` | 每個任務類型、合格分數、獎章鎖、重做、積分帳本、連續活躍、上載 |
-| `test_leader.py` | 後台、審批、帳戶、內容、**寄信設定與測試郵件（密碼永不回顯）**、**由後台寄出重設連結**、區域 2–5 遊戲配置（重複／舊任務／已有進度均擋下） |
-| `test_leader_cave_editor.py` | 領袖逐題編輯、權限、50 題／四壁不變、舊進度、玩到一半時的版本、離線重新建立 |
-| `test_engine.py` | 純規則：評分、答案隱藏、獎章、帳本、龍虎榜排序、建議 |
-| `test_pages.py` | 每頁 200、雙語、12 個離線內嵌畫面、主頁出口、單一開始按鈕、山洞本地計分合約 |
-| `test_sheets_driver.py` | 以假 Google API 驗證分頁建立、標題列、JSON 儲存格、定點更新、快取、Drive 上載 |
-| `test_member_badge_guide.py` | 同一入口頁、五個不同遊戲才發會員章；第一區只有山洞、綱要參考非額外條件、舊試卷不能提交 |
-| `test_cave_game.py` | 遊戲 1：四段圖文與時間線、50 題、錯路／重試、英文說明、真實分數、沒有第二份試卷 |
-| `test_parity.py` | 與 Node 版比對分頁/欄位/主鍵/種子碼，以及**雙向密碼互通** |
+### 正式資料接駁
 
----
+在朋友旅團專用的 Google Cloud／Google Sheet 準備完成後，於 Vercel **Production** 環境設定：
 
-### 8. 環境變數 (environment)
-
-見 [`.env.example`](.env.example)。最常用的：
-
-```bash
-DATA_DIR=./data            # local 模式的資料夾
-SECRET_KEY=...             # 表單及山洞進行中題庫的簽署密鑰（正式使用請設定固定值；SESSION_SECRET 亦可）
-COOKIE_SECURE=true         # 只在 HTTPS 之下
-DEMO_LOGIN=true            # 只為示範：開放 demo1 / demo2 / demo3 一按即入
-SEED_DEMO=true             # 只為示範：加入示範領袖與七個示範童軍
-                           # 正式上線兩者都留空（＝關閉），第一次開啟會顯示「建立第一位領袖」
+```dotenv
+SESSION_SECRET=<至少 32 bytes 的隨機值>
+COOKIE_SECURE=true
 DATA_DRIVER=sheets
-GOOGLE_SHEET_ID=...
-GOOGLE_DRIVE_FOLDER_ID=...
-GOOGLE_SERVICE_ACCOUNT_FILE=./service-account.json
+GOOGLE_SHEET_ID=<朋友旅團專用 Sheet ID>
+GOOGLE_SERVICE_ACCOUNT_JSON=<完整 service-account JSON>
+GOOGLE_DRIVE_FOLDER_ID=<選填；證明相片及卡圖使用>
+DEMO_LOGIN=false
+SEED_DEMO=false
+ALLOW_URL_SESSION=false
 ```
 
----
+1. 開啟 Google Sheets API；需要檔案上載時亦開啟 Google Drive API。
+2. 把 Sheet（及選填 Drive folder）以 Editor 分享給 service account 電郵。
+3. 在 Vercel 儲存環境變數並 Redeploy。
+4. 開啟 `/health`，確認 `storage` 是 `sheets`、`demo` 是 `false`、`catalog_error` 為空。
+5. 才建立正式領袖與成員帳戶，並以真機走一次：登入 → 讀取 → 寫入 → 登出 → Redeploy → 再登入確認資料仍在。
 
-### 9. 起步次序 (recommended order for a real unit)
+詳細上線檢查見 [`LAUNCH.md`](LAUNCH.md)。
 
-1. **設定** → 單位名稱、小隊（Tiger / Otter / Seagull → 改成你們的名字）、功能開關。
-2. **內容** → 保留五枚進度性獎章並修改文字；在會員章下新增任務，內容完備後透過「五區遊戲設定」逐一掛到區域 2–5。不要把綱要參考任務當成額外通關條件。
-3. **帳戶** → 逐一開設童軍（或用 CSV 匯入）。把名字告訴他們：他們按名字就可以進入，
-   但**第一次必須**自行設定密碼和填寫電郵，才會見到主頁。領袖若填了初始密碼，
-   該童軍登入後仍要設定個人密碼及電郵（初始密碼隨即失效）。
-4. 把連結發給童軍，示範帳戶 `demo2` 可演示遊戲 1 與遊戲 2；其餘遊戲等內容提供後才開放。
-5. 集會後到 **審批** 處理相片／反思／簽核。
-6. 獎品備妥後，在 **設定** 打開換領，才在 `/rewards` 出現「換領」按鈕。
+### 資料與安全
 
----
+- 密碼使用逐帳戶 salt 的 scrypt hash；模板只取得公開帳戶欄位。
+- 登入 session 使用 `HttpOnly`、`SameSite=Lax` cookie；正式環境不接受 URL session token。
+- 電郵重設連結只儲存 token hash，使用一次後失效，並撤銷舊 session。
+- `.env*`、service-account JSON、憑證、本機 uploads 及備份均由 Git 忽略。
+- `data/db/*.json` 是空白本機 scaffold，不是正式資料來源；`data/` 不會上傳 Vercel。
+- 卡圖功能沒有在前端放 API key 或 prompt-vault token；如未設定 `GEMINI_API_KEY`，功能會安全地保持關閉。
 
-### 10. 出處 (credit)
+### 圖標
 
-獎章圖片取自香港童軍總會《童軍訓練綱要》
-<https://scoutsinfohub.org.hk/scout-training-scheme>，供本旅團內部使用。
-- **更新平台前後**：[`docs/06-safe-updates.md`](docs/06-safe-updates.md) —— 推送新版本不會動到試算表資料，附存檔工具 `tools/backup_sheet.py`。
-- **正式上線步驟**：[`LAUNCH.md`](LAUNCH.md) —— 由開 Google 試算表到第一位領袖登入，一步步跟著做。
+`static/icons/` 依 G11 提供 9 個 PNG／ICO：favicon 16/32/ICO、Apple 180、PWA 192/512、maskable 192/512 及 OG 1200×630。主體位於中央 66% 安全區，合計體積受 260 KB 上限約束。
+
+重新產生（需要 Pillow 與 ImageMagick）：
+
+```bash
+python tools/generate_icons.py
+```
+
+### Git 工作流程
+
+本 repo 依真理倉原則處理：
+
+1. feature branch 修改
+2. 每個 commit 一件事，使用 Conventional Commits
+3. `pytest` 與 GitHub Actions 綠燈
+4. Pull Request 審核
+5. squash merge 至受保護的 `main`
+
+不可直接在 `main` 修改或用 force push 繞過檢查。
+
+### 架構
+
+- `app.py`：Flask app factory、共用模板 context、health、security headers
+- `api/index.py`：Vercel serverless entry point
+- `scout/drivers/`：本機 JSON 與 Google Sheets／Drive drivers
+- `scout/routes/`：登入、童軍、領袖、個人檔案與遊戲 routes
+- `content/member-badge/`：通用會員章指南、山洞題庫與故事
+- `templates/`、`static/`：Jinja UI、CSS、JS、圖像及圖標
+- `tests/`：權限、流程、資料持久性、遊戲與 UI 合約測試
+
+### 真理倉回饋建議（本輪只作建議）
+
+這個 App 值得真理倉吸收的通用做法：storage readiness health check、首次 setup gate、模板不接 password 欄、reset token hash＋session 撤銷、redeploy 資料守護測試、空庫 seed 不覆寫、自助修正 Sheets 錯誤提示、feature flags、雙語與 reduced-motion/no-JS fallback、audit log，以及部署前瀏覽器 walkthrough。旅團層級、小隊流程與遊戲內容不應硬套到所有專案。
 
 ---
 
@@ -401,222 +150,43 @@ GOOGLE_SERVICE_ACCOUNT_FILE=./service-account.json
 
 <sub>來源 / source: `LAUNCH.md`</sub>
 
-全部在瀏覽器做，約 30 分鐘。做完你會有三樣東西：
+> 目前新 Google Sheet 尚未接妥；在下列 **P0** 全部完成前，只可預覽，不可建立正式帳戶或資料。
 
-1. **一張 Google 試算表** —— 所有資料住的地方（帳戶、進度、積分、內容）
-2. **一個 Vercel 網址** —— 童軍打開來玩的地方（例如 `https://82hkg-scout-platform.vercel.app`）
-3. **一組你自己設定的領袖登入** —— 只有你有
+### P0 — 必須完成
 
-> 全程順序很重要：**先接好試算表，才建立第一位領袖**。
-> 反過來做的話，領袖帳戶會寫在臨時空間，執行個體一回收就不見。
+- [ ] 建立朋友旅團專用 Google Sheet、Google Cloud project 及 service account
+- [ ] 開啟 Google Sheets API；使用上載時亦開啟 Google Drive API
+- [ ] Sheet／Drive folder 已分享給 service account（Editor）
+- [ ] Vercel Production 已設定 `SESSION_SECRET`、`COOKIE_SECURE=true`、`DATA_DRIVER=sheets`、`GOOGLE_SHEET_ID`、`GOOGLE_SERVICE_ACCOUNT_JSON`
+- [ ] `DEMO_LOGIN=false`、`SEED_DEMO=false`、`ALLOW_URL_SESSION=false`
+- [ ] Redeploy 後 `/health` 顯示 `storage: sheets`、`demo: false`、`catalog_error` 空白
+- [ ] 第一位正式領袖由 `/setup` 建立；密碼不是示範值
+- [ ] 真機完成：登入 → 讀 → 寫 → 登出
+- [ ] Redeploy 一次，再確認帳戶及寫入資料仍存在
+- [ ] `python -m pytest -q` 與 PR CI 全綠
 
----
+### P1 — 內容與私隱
 
-### 第 0 步　先讓我推送一個修正（1 分鐘）⭐
+- [ ] 領袖確認原有 50 題會員章題庫及遊戲內容保持不變
+- [ ] 檢查公告、建議、獎品、抽卡、龍虎榜開關；不適用或未審核的功能應關閉
+- [ ] 確認成員姓名、電郵及相片的收集與使用已獲適當同意
+- [ ] 不在聊天、Git、URL、截圖或前端程式放 service-account JSON、API key、session token
+- [ ] 領袖測試忘記密碼及一次性 reset link
+- [ ] 英文／中文、手機／桌面、reduced motion、無 JavaScript 基本流程各走一次
 
-新試算表要**最新版的程式**才會自動建立獎章目錄（會員章、5 個獎章、17 個項目）。
-如果現在就接上試算表，網站會開得起來但**一張獎章都沒有**。
+### Vercel Dashboard 手動核對
 
-- 把 GitHub token 貼給我，我推送之後你再開始第 1 步。
-- 或者你自己有 token 時，在專案資料夾跑：
-  ```bash
-  GITHUB_TOKEN=github_pat_xxx bash tools/push.sh "上線前修正"
-  ```
-- 推送後 Vercel 會自動重新建置（1–2 分鐘）。**先等它建好再往下做。**
+本工作環境目前沒有 Vercel project read 權限，因此以下項目須由專案擁有人在 Dashboard 手動確認：
 
----
+1. Settings → Environment Variables：Production 與 Preview 值分開；secret 只在 server-side。
+2. Deployments：目前 Production deployment 指向已合併、CI 綠燈的 commit。
+3. Domains：正式域名指向正確 project，HTTPS 正常。
+4. Logs：啟動後沒有 Sheets 權限、JSON 解析、tab schema 或 Drive upload 錯誤。
+5. Functions：沒有依賴 `/tmp` 作正式資料庫。
 
-### 第 1 步　開一張 Google 試算表（3 分鐘）
+### 回滾
 
-1. 用旅團的 Google 帳號登入，開 <https://sheets.new> → 建立新的空白試算表
-2. 左上角改名：**82旅童軍進度**
-3. 看網址列，ID 就是中間這一段：
-
-   ```
-   https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz1234567890/edit
-                                          └──────────── 這就是 GOOGLE_SHEET_ID ────────────┘
-   ```
-4. 抄下來（複製整段 ID）。**不用**自己加工作表 —— 程式第一次連上會自動建立 15 個。
-
----
-
-### 第 2 步　開一個「服務帳戶」，讓程式可以寫入試算表（8 分鐘）
-
-這一步是給程式用的機器人帳號：它沒有密碼，只有一把鑰匙（JSON 檔）。
-
-1. 開 <https://console.cloud.google.com> → 最上方專案選單 → **新增專案**
-   - 名稱：`82hkg-scout` → 建立 → 等幾秒 → 切換到這個專案
-2. 左邊選單 **API 和服務 → 程式庫**（APIs & Services → Library）
-   - 搜尋 **Google Sheets API** → **啟用**
-   - 再搜尋 **Google Drive API** → **啟用**（相片上載用；一齊開好省事）
-   - 兩個都要在同一個專案（就是上面建立的 `82hkg-scout`）。
-     完成後可以在 **API 和服務 → 已啟用的 API 和服務** 見到這兩個名字。
-   - 這一步驟不會收費；小型旅團的用量遠低於免費額度。
-   - ⚠️ 若未啟用，之後 `/health` 會顯示「Google Sheets API 還未在 Google Cloud 專案啟用」——
-     那不是共用設定錯，而是回到這一頁按「啟用」。
-3. 左邊 **APIs 和服務 → 憑證**（Credentials）→ **建立憑證 → 服務帳戶**
-   - 名稱：`scout-platform` → 建立並繼續 → （不用給角色）繼續 → 完成
-4. 在服務帳戶清單點進剛才那個 → 上方分頁 **金鑰（Keys）**
-   → **新增金鑰 → 建立新的金鑰 → JSON → 建立** → 電腦會下載一個 `.json` 檔
-5. 打開那個 JSON 檔（用記事本／文字編輯器即可），找到這一欄：
-
-   ```json
-   "client_email": "scout-platform@82hkg-scout.iam.gserviceaccount.com"
-   ```
-
-   **這個電郵就是「機器人電郵」**，下一步要共用給它。
-
-> 金鑰檔等於密碼，不要放在公開的雲端硬碟或 GitHub。Vercel 的環境變數就是它該去的地方。
-
----
-
-### 第 3 步　先驗一次金鑰（1 分鐘，強烈建議）
-
-用瀏覽器打開 **`tools/check-service-account.html`**，把 JSON 檔的內容貼進去按「檢查」。
-看到 ✅ 才繼續；它同時會告訴你 `client_email`（要共用給哪個電郵）。
-最常見的三個錯誤它都會指出：
-
-- 只複製了一部分（結尾應該見到 `}`）
-- 貼了**檔案路徑**而不是檔案內容
-- 複製時把 `\n` 變成了真換行（可一鍵修正）
-
-這個工具完全在你的瀏覽器內運作，**不會上傳任何內容**。
-
----
-
-### 第 4 步　把試算表和資料夾共用給機器人（2 分鐘）
-
-1. 回到第 1 步的試算表 → 右上角 **共用** → 貼上機器人電郵
-   → 權限選 **編輯者**（不是檢視者）→ 傳送
-2. 相片用的資料夾（童軍上載證據相片）：
-   - <https://drive.google.com> → **新增 → 資料夾** → 命名 `82旅童軍相片`
-   - 右鍵 → 共用 → 同一個機器人電郵 → **編輯者**
-   - 進去資料夾，網址是 `.../drive/folders/`**`<這一段>`**，那就是 `GOOGLE_DRIVE_FOLDER_ID`
-3. 如果暫時不需要相片上載，第 2 點可以跳過（之後再補也可以）。
-
----
-
-### 第 5 步　Vercel 部署（7 分鐘）
-
-1. 開 <https://vercel.com> → **Continue with GitHub** → 授權登入（`hinli2021`）
-2. **Add New… → Project → Import** 選 `82hkg-scout-platform`
-   - 如果看不到這個 repo：按 *Configure GitHub App* 授權 Vercel 讀取它
-   - **Framework Preset**：`Other`
-   - **Root Directory / Build / Output**：全部留空（`vercel.json` 已經寫好）
-3. **Environment Variables 在哪裡**：進入專案後，按專案上方的 **Settings**
-   → 左邊清單的 **Environment Variables**（不在 General、不在 Domains，
-   也不是 GitHub 的 Settings），然後 **Add New**。
-   圖解見 `docs/screens/vercel-env-howto.svg`。逐個貼上，
-   **Environments 要勾 Production**（Preview 建議一齊勾）：
-
-   | 名稱 | 值 | 從哪裡拿 |
-   |---|---|---|
-   | `SESSION_SECRET` | 隨機 32 位以上的字串（例如 `openssl rand -hex 32` 的輸出；亂打一串英數也可以） | 自己定，定好不要再改 |
-   | `GOOGLE_SHEET_ID` | 第 1 步抄下的那一段 | 試算表網址 |
-   | `GOOGLE_SERVICE_ACCOUNT_JSON` | **整份 JSON 檔內容**（全選複製，連大括號一起貼上） | 第 2 步下載的檔案 |
-   | `GOOGLE_DRIVE_FOLDER_ID` | 第 3 步抄下的那一段（沒有就留空或整項不填） | Drive 網址 |
-   | `DATA_DRIVER` | `sheets` | 固定值 |
-
-   - `DEMO_LOGIN`、`SEED_DEMO` **不要設定**（正式版要關掉示範帳戶）
-   - ⏰ 時區已固定在程式裡（Asia/Hong_Kong），不用設
-4. **存好變數之後**，到 **Deployments → 最上面那個 → ⋯ → Redeploy** → 等 1–2 分鐘。
-   這一步不能省：Vercel 只在建置時讀取環境變數，已經部署好的舊版本不會自動看到新變數。
-   （第一次部署時按 **Deploy** 也可以；之後每次改動變數都一定要 Redeploy。）
-   → 完成後會給你網址，例如 `https://82hkg-scout-platform.vercel.app`
-   - 想用自己的網域：Settings → Domains
-
----
-
-### 第 6 步　第一次打開：建立第一位領袖（2 分鐘）
-
-1. 打開那個網址 —— 應該直接看到 **「建立第一位領袖」**（不是登入頁，也不是示範帳戶）
-2. 填：單位名稱（中文已預設「港島第八十二旅童軍團」）、你的姓名、登入帳號、密碼（至少 6 個字，輸入兩次）
-3. 按「建立領袖帳戶，開始使用」→ 直接進入**領袖後台**，而且已經登入
-4. 到 領袖後台 → **設定**，最上面有一張 **🧭 設定檢查** 卡（它只看，不會改動資料）。
-
-   | 卡上看到甚麼 | 代表 |
-   |---|---|
-   | **✅ 全部就緒** ＋ 「資料儲存在 Google 試算表」 | 成功，資料以後都存在那裡 |
-   | **⚠️ 還有 1 項要處理** ＋ 「資料暫存中」 | 未接通 —— 回第 5 步檢查變數名稱、`GOOGLE_SERVICE_ACCOUNT_JSON` 是否貼完整，然後 Redeploy |
-
-   卡上共 7 項：儲存位置、獎章目錄、任務與遊戲項目、遊戲 1／2 內容、領袖帳戶、童軍帳戶、
-   寄信信箱（可選）。未完成的那一項會直接寫「怎樣做」。
-
-5. 回頭看試算表：應該多了 15 個工作表；`badges` 有 5 列、`tasks` 有 17 列。
-   這代表獎章目錄已經建立好，之後的更新都不會再改動它。
-
-**領袖登入**：登入頁右下角「領袖入口」→ 在「領袖代碼」一欄輸入**你自己設定的密碼**。
-
----
-
-### 第 7 步　開童軍帳戶（每人約 30 秒）
-
-領袖後台 → **帳戶 → ➕ 開設童軍帳戶**：中文姓名、英文姓名、小隊（Otter／Tiger／Seagull）、
-用戶名稱（留空自動產生）→ 把臨時密碼給童軍。
-
-童軍那邊：打開網址 → **登入** → 點自己的小隊（英文）→ 點自己的中文名 →
-第一次登入要**建立自己的密碼**並填**電郵**（忘記密碼用的）。
-
-- 想一次輸入全團：用同一頁的 **⬇️ 匯出 CSV** 保存帳戶清單
-- 童軍**不能自行註冊**，所有帳戶都由你開
-
----
-
-### 第 8 步　電郵（找回密碼）—— 可選但建議（10 分鐘）
-
-沒有設定也能用：系統會請童軍在設定頁自行輸入電郵即時重設。
-要讓「寄一條重設連結」真的寄得出去，見 `docs/03-email-setup.md`：
-Gmail 應用密碼 → 領袖後台 → 設定 → 寄信信箱 → **試寄一封**。
-
----
-
-### 第 9 步　上線前最後檢查
-
-- [ ] GitHub repository 已改為 **Private**（Settings → General → Danger Zone）
-- [ ] 領袖後台 → 設定：看到 **✅ 資料存放於 Google 試算表**（不是暫存警告）
-- [ ] 用領袖代碼登入過一次
-- [ ] 開了一個**測試童軍**帳戶，實際玩過遊戲 1（石室）與遊戲 2（過河）
-- [ ] 玩完之後，試算表 `progress_records`、`points_ledger` 多了對應的列
-- [ ] 試算表 **檔案 → 建立副本** 留一份備份（或設定 → 版本記錄，看你做過的每一步）
-- [ ] 已把網址發給童軍（連同離線檔 `demo-preview.html` 一起給更好）
-
----
-
-### 隨時檢查：打開網址後加 `/health`
-
-在瀏覽器輸入 **`<你的網址>/health`**，會看到一張「🩺 平台狀態」頁：
-
-- **✅ 一切正常** ＋ 「資料儲存在 Google 試算表」 → 設定完成
-- **⚠️ 有 N 項要處理** ＋ 「資料暫存在執行個體空間」 → 未接通，頁面會直接寫出怎樣做
-  （最常見：加了環境變數但**未 Redeploy**）
-
-同一頁下半部會列出獎章／任務／帳戶的數量，以及示範帳戶是否已關閉。
-它只讀，不會改動任何資料，也不會顯示任何姓名。
-
----
-
-### 出事怎辦
-
-| 情況 | 處理 |
-|---|---|
-| 網站顯示錯誤 / 500 | Vercel → 專案 → **Logs** 看 `api/index` 的訊息；最常見是 Google 金鑰貼錯或截斷 |
-| 玩了一段時間後回到登入頁、資料像重置了 | 未接上試算表（領袖後台 → 設定會顯示暫存警告）→ 回第 5 步 |
-| 想回到舊版本 | Vercel → **Deployments** → 上一個正常版本 → ⋯ → **Promote to Production**（一分鐘，資料不變） |
-| 試算表誤刪／改錯 | 試算表 → **檔案 → 版本記錄 → 查看版本記錄**，還原到任何時間點 |
-| 相片上載失敗 | `GOOGLE_DRIVE_FOLDER_ID` 未設，或資料夾未共用給機器人電郵 |
-| 忘記領袖密碼 | 有填電郵的話可用「忘記密碼」；否則用另一個領袖帳戶代為重設 |
-
----
-
-### 可以貼給我看的東西（不要貼金鑰）
-
-- Vercel 網址 —— 我可以從這裡檢查正式站：沒有示範帳戶、登入頁正常、遊戲進得去
-- 第 5 步「設定」那張卡是 ✅ 還是 ⚠️
-- 機器人電郵（`scout-platform@…iam.gserviceaccount.com`）—— 用來確認共用對象對不對
-
-相關文件：
-`docs/02-google-sheets-setup.md`（試算表詳解）、`docs/05-vercel.md`（部署與疑難排解）、
-`docs/06-safe-updates.md`（更新時資料的安全保證）、`docs/03-email-setup.md`（寄信設定）。
+如新版本異常：Vercel → Deployments → 找上一個成功 deployment → **Promote to Production**。程式回滾不應回寫或清空 Google Sheet；回滾後再做一次讀寫驗證。
 
 ---
 
@@ -626,131 +196,45 @@ Gmail 應用密碼 → 領袖後台 → 設定 → 寄信信箱 → **試寄一�
 
 <sub>來源 / source: `docs/05-vercel.md`</sub>
 
-正式版的流程：在這裡改東西 → 推送 GitHub（`tools/push.sh`）→ Vercel 自動重新建置 →
-童軍打開網址就可以用。**資料不在 Vercel 上**，資料在 Google 試算表（見第 4 節），
-Vercel 只是跑程式的地方。
+本 App 已接上 Vercel 網址，但新 Google Sheet 尚未接妥；現階段只可預覽。
 
-> 想一步一步跟著做（開試算表 → 服務帳戶 → 共用 → Vercel → 第一位領袖）：
-> 見根目錄的 **[`LAUNCH.md`](../LAUNCH.md)**。這份文件是細節與疑難排解。
+### Environment Variables（Production）
 
----
+| Key | 要求 |
+|---|---|
+| `SESSION_SECRET` | 至少 32 bytes 隨機值 |
+| `COOKIE_SECURE` | `true` |
+| `DATA_DRIVER` | `sheets` |
+| `GOOGLE_SHEET_ID` | 荃灣第 7 旅專用 Sheet ID |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | 完整 service-account JSON，只放 server-side env |
+| `GOOGLE_DRIVE_FOLDER_ID` | 選填；使用證明相片／卡圖上載時填 |
+| `DEMO_LOGIN` | `false` |
+| `SEED_DEMO` | `false` |
+| `ALLOW_URL_SESSION` | `false` |
+| `GEMINI_API_KEY` | 選填；留空即關閉卡圖生成 |
 
-### 1. 首次部署（瀏覽器做一次，約 5 分鐘）
+### Google 設定
 
-1. **Vercel**：<https://vercel.com> → **Continue with GitHub**（`hinli2021`）登入 →
-   **Add New… → Project → Import** 選 `82hkg-scout-platform`。
-   - 私人 repository 要按 *Configure GitHub App* 授權 Vercel 讀取它。
-   - **Framework Preset**：`Other`；**Build／Output Directory 留空**（`vercel.json` 已寫好）。
-2. **Environment Variables**（Settings → Environment Variables，Production 與 Preview 都勾）見第 3 節。
-3. **Deploy**。完成後會有網址，例如 `https://82hkg-scout-platform.vercel.app`。
-   （可以再綁自己的網域：Settings → Domains。）
+1. 建立朋友旅團專用 Google Cloud project、service account 與 Sheet。
+2. 開啟 Google Sheets API；如需檔案上載亦開 Drive API。
+3. 把 Sheet（及 Drive folder）以 Editor 分享給 service account 的 `client_email`。
+4. JSON 整份由 `{` 至 `}` 貼入 Vercel；不可 commit 或放前端。
+5. Redeploy。
 
-### 2. 第一次開啟平台：建立第一位領袖
+### 驗收
 
-正式版**沒有示範帳戶**。第一次打開網址，平台會直接顯示 **「建立第一位領袖」**：
+打開 `/health`，確認：
 
-1. 填單位名稱（中文必需，英文可留空）、領袖姓名（中文必需）、登入帳號、密碼（至少 6 個字）。
-2. 按「建立領袖帳戶，開始使用」→ 直接進入**領袖後台**，並且已登入。
-3. 之後這一頁自動收起，任何人再到網址就只看到登入頁。
+- `storage` 是 `sheets`
+- `demo` 是 `false`
+- `catalog_error` 空白
+- badges／tasks 目錄數目正常
 
-> 領袖登入：登入頁右下角**領袖入口** → 在「領袖代碼」一欄輸入**你自己設定的密碼**。
-> （示範帳戶的 `0082` 只屬於離線試玩檔與示範部署。）
+之後才建立正式領袖與成員。完成一次真機讀寫、登出及 Redeploy 保留資料測試。若 `storage` 是 `local`，資料位於 `/tmp` 並會消失，不能正式使用。
 
-**接著在領袖後台建立童軍帳戶**：領袖 → 帳戶 → 新增（選擇小隊、姓名、設定密碼）。
-童軍第一次登入會看到「建立密碼／填電郵」的設定頁，之後就可以玩。
+### 回滾
 
-### 3. 環境變數
-
-| 名稱 | 值 | 說明 |
-| --- | --- | --- |
-| `SESSION_SECRET` | 隨機長字串（例如 `openssl rand -hex 32`） | **建議設定**。未設定時平台會自動產生一次並保存在資料庫（試算表）裡，同樣不會登出；但明確設定最清楚 |
-| `DATA_DRIVER` | `sheets` | 正式儲存：資料寫進 Google 試算表（第 4 節）。不設定而只給 `GOOGLE_SHEET_ID` 時，程式也會自動用 `sheets` |
-| `GOOGLE_SHEET_ID` | 試算表 ID | 網址 `docs.google.com/spreadsheets/d/`**`<這一段>`**`/edit` |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | 服務帳戶金鑰**整段 JSON** | 貼在值欄（`GOOGLE_SERVICE_ACCOUNT_FILE` 亦可，但 Vercel 上通常用 JSON 變數） |
-| `GOOGLE_DRIVE_FOLDER_ID` | 雲端硬碟資料夾 ID（可留空） | 童軍證據相片存放位置；留空則不能上載相片 |
-| `DEMO_LOGIN` | 不設定（＝關閉） | 只在**示範部署**才設 `true` |
-| `SEED_DEMO` | 不設定（＝關閉） | 同上；正式版不要開，否則會加入示範童軍 |
-| `DATA_DIR` | `/tmp/scout-platform-data` | 只在沒有設定試算表時才用得到的暫存位置 |
-
-**TZ** 已在 `api/index.py` 固定為 `Asia/Hong_Kong`，日期與「今日」都以香港時間計。
-
-### 4. 資料放在 Google 試算表（正式版的資料庫）
-
-1. 開一個新的 Google 試算表（名稱例如「82旅童軍進度」）。
-2. 到 <https://console.cloud.google.com>：建立專案 → 啟用 **Google Sheets API** 與 **Google Drive API**
-   → **IAM 與管理 → 服務帳戶** → 建立服務帳戶 → 建立**金鑰（JSON）**。
-3. 把試算表**共用**給服務帳戶的電郵（`…@….iam.gserviceaccount.com`），權限「編輯者」；
-   相片用的雲端硬碟資料夾亦一樣共用。
-4. 把 JSON 金鑰內容貼進 Vercel 的 `GOOGLE_SERVICE_ACCOUNT_JSON`，並填 `GOOGLE_SHEET_ID`。
-5. Redeploy。第一次連上時，程式會在試算表建立所有工作表（一行一筆資料），之後就可以用。
-
-逐步做法見 **`docs/02-google-sheets-setup.md`**（Google 三步 → Vercel 環境變數 → 檢查）。
-做完之後，領袖後台 → 設定 會顯示 **✅ 資料存放於 Google 試算表**（附連結）；仍顯示「⚠️ 資料暫存中」即代表未接通。
-
-本機可以先驗一次再部署：
-
-```bash
-export DATA_DRIVER=sheets GOOGLE_SHEET_ID=1AbC…xyz GOOGLE_SERVICE_ACCOUNT_FILE=./service-account.json
-python3 tools/check_sheets.py      # 逐項檢查，最後印 ALL GOOD
-```
-
-> **沒有試算表會怎樣？** 平台仍可運作，但資料寫在執行個體的 `/tmp`，
-> 一段時間沒有流量就回收 → 帳戶與進度回到空白。領袖後台 → **設定** 會顯示
-> 「⚠️ 資料暫存中」的提醒，看到這個提示就代表還未接上試算表。
-
-### 隨時檢查部署：`/health`
-
-瀏覽器打開 `<網址>/health` 會看到「🩺 平台狀態」頁（程式呼叫時仍是 JSON）：
-
-- 儲存位置是否為 Google 試算表（不是就會寫出修正步驟）
-- 獎章／任務／帳戶數量
-- 示範帳戶是否已關閉
-- 這一頁只讀，不會寫入任何資料，也不含任何個人資料
-
-> JSON 版本（供腳本用）：`curl -s <網址>/health` → `{"ok":true,"storage":"sheets",…,"setup_ready":true}`
-
-### 5. 每次更新的流程
-
-```bash
-cd scout-platform-py
-GITHUB_TOKEN=github_pat_xxx bash tools/push.sh "這次改了甚麼"
-```
-
-推送 `main` 之後，Vercel 約 30–60 秒自動建置新版本（Deployments 頁可看進度）。
-Token 只需要這個 repository 的 **Contents: Read and write**，用完可以即時撤銷。
-
-### 6. 上線前檢查清單
-
-- [ ] repository 已設為 **Private**（GitHub → Settings → General → 最底 Danger Zone）
-- [ ] Vercel 已加 `SESSION_SECRET`、`GOOGLE_SHEET_ID`、`GOOGLE_SERVICE_ACCOUNT_JSON`
-- [ ] 已建立第一位領袖，並且用領袖代碼登入過一次
-- [ ] 領袖後台 → 設定 → **🧭 設定檢查** 卡顯示「全部就緒」（7 項之中，寄信信箱為可選）
-- [ ] 領袖後台 → 設定，**沒有**看到「資料暫存中」警告
-- [ ] 已建立至少一個童軍帳戶，實際玩過遊戲 1 與遊戲 2
-- [ ] 領袖後台 → 設定 → SMTP，用「試寄一封」確認找回密碼的郵件真的出得去（`docs/03-email-setup.md`）
-- [ ] 已把網址發給童軍（可連同 `demo-preview.html` 離線檔一起）
-
-### 7. 疑難排解
-
-| 情況 | 處理 |
-| --- | --- |
-| 網站顯示 page is not available／Function crashed 之後改好環境變數仍然一樣 | 多數是部署缺少套件或變數內容有誤。2026-10-16 曾發生：`requirements.txt` 少了 `google-auth`，一設 `DATA_DRIVER=sheets` 就在啟動時 `ModuleNotFoundError: No module named 'google'` 而全站掛掉。已修正；Redeploy 最新版本即可。現在程式亦會在連不上試算表時改用暫存並在 `/health` 說明原因，不會再整站消失 |
-| 網站 500（Function Error） | Vercel → Project → Logs 看 `api/index` 的訊息；最常見是 `templates/`、`content/` 沒有被 `includeFiles` 帶上，或 Google 金鑰貼錯 |
-| 玩了很久之後回到登入頁 | 執行個體被回收、資料回到示範狀態 → 未接上試算表；按第 4 節設定 |
-| 童軍上載相片失敗 | 未設 `GOOGLE_DRIVE_FOLDER_ID`，或資料夾未共用給服務帳戶 |
-| 忘記領袖密碼 | 有電郵的帳戶可用「忘記密碼」；否則在另一個已登入的領袖帳戶 → 帳戶 → 重設密碼 |
-| 想換網址 | Settings → Domains 綁自己的網域；更新後記得在領袖設定填回正確網址 |
-
-### 上線之後：推送新版本安全嗎？
-
-安全。資料在 Google 試算表，不在程式碼裡；新版本只會讀取，不會覆寫。
-
-- 目錄（獎章／任務）只在**空試算表第一次連上**時建立一次，之後永不重寫。
-- 領袖改過的任何內容、童軍的進度與積分，全部留在試算表，Redeploy 後照樣在。
-- 自動測試 `tests/test_redeploy_keeps_data.py` 已模擬「推送＋重新部署」整段流程並通過。
-- 詳見 `docs/02-google-sheets-setup.md`「推送新版本會不會洗掉資料？」。
-- 完整的安全更新流程（更新前備份、更新後比對、一鍵回舊版）：`docs/06-safe-updates.md`；
-  存檔工具：`python3 tools/backup_sheet.py`（只讀試算表，存到 `backups/`）。
+Vercel → Deployments → 上一個成功版本 → Promote to Production。回滾後重新驗證 `/health` 及一筆讀寫；不要清空 Sheet。
 
 ---
 
@@ -954,7 +438,7 @@ Sheets API 對小型旅團（數十位童軍、每天數百次讀寫）遠遠用
 | SMTP 主機 | `smtp.gmail.com` |
 | 連接埠 | `587` |
 | 加密 | `TLS (587)` |
-| 寄件人 | 單位 Gmail，例如 `82hkg@gmail.com` |
+| 寄件人 | 單位 Gmail，例如 `tw7.scout@example.com` |
 | 帳號 | 同一個 Gmail |
 | 應用程式密碼 | 貼上那 16 個字 |
 | 重設連結有效期 | 預設 60 分鐘 |
@@ -998,90 +482,25 @@ Sheets API 對小型旅團（數十位童軍、每天數百次讀寫）遠遠用
 
 <sub>來源 / source: `docs/04-github.md`</sub>
 
-**現況：已放上 https://github.com/hinli2021/82hkg-scout-platform（私人 repository）**
-- 第一次上載：2026-10-16，163 個檔案、一次提交（commit `821d44e`）。
-- 未上載：`data/db/sessions.json`（登入憑證，程式自動重建）、`data/uploads/`（童軍相片）。
-- **110 張介面截圖**存放在同一個 repository 的另一個分支 **`screenshots`**
-  （壓縮版，22 MB），不佔用本機空間：
-  `https://github.com/hinli2021/82hkg-scout-platform/tree/screenshots/docs/screens`
-- 本機 `docs/screens/` 只保留最新 12 張（壓縮版），PNG 不入版控，重拍不會弄髒 `git status`；
-  檢查腳本隨時可以重拍任何一張。
+目前 repository：`playerkousas-rgb/scoutapp`。
 
-### 每次改動之後推送
+### 工作流程
 
-```bash
-GITHUB_TOKEN=github_pat_xxx bash tools/push.sh "這次改了甚麼"
-```
+1. 從受保護 `main` 建 feature branch。
+2. 每個 commit 只做一件事，使用 Conventional Commits。
+3. Push feature branch，開 Pull Request。
+4. 等 GitHub Actions `test` 綠燈並完成 review。
+5. squash merge；不可直接 push 或 force push `main`。
 
-推送 `main` 之後，Vercel 會自動重新部署正式網站（見 `docs/05-vercel.md`）。
-token 只需要**這一個 repository** 的 **Contents: Read and write**；用完可以即時撤銷。
-若把 token 寫入 `~/.82hkg-github-token`（在 repository 之外，不入版控），
-`tools/push.sh` 就會自動讀取，之後不必每次貼上。
+### 認證與 secret
 
-整個計劃就是 `scout-platform-py` 這一個資料夾。放上 GitHub 之後，每次改動都有一個記錄，
-換電腦、換領袖接手，都可以由同一個地方取回完整檔案。
+- 使用已登入的 `git`／`gh`，不要把 Personal Access Token 寫進 repo、home file、聊天或 script。
+- `.env*`、service-account JSON、private key 與本機資料由 `.gitignore` 排除。
+- PR 前檢查 `git diff --check`、secret scan、完整 `pytest`。
 
-### 三條路，選一條
+### 回滾
 
-#### A. 由這裡直接推送（最快，需要一個 GitHub token）　←　現時採用這一條
-1. 在 GitHub 開一個新的 repository：名稱 `82hkg-scout-platform`、**Private**，
-   **不要**勾選 Add README／.gitignore／licence（要完全空白）。
-2. 開一個 **fine-grained token**：GitHub → 右上頭像 → Settings → Developer settings →
-   Personal access tokens → **Fine-grained tokens** → Generate new token：
-   - Repository access → Only select repositories → 只選 `82hkg-scout-platform`
-   - Permissions → Repository permissions → **Contents: Read and write**（其餘保持 No access）
-   - Expiration 選最短（例如 7 days）
-3. 把 **repository 網址**（`https://github.com/<你的帳號>/82hkg-scout-platform.git`）與 **token** 交給平台。
-   平台會把 163 個檔案推送上去（附一次提交記錄）。
-4. 推送完成後，立即回 GitHub 同一頁按 **Revoke** 撤銷那個 token；日後要再推送，另開一個新 token。
-
-> token 等於一次性的鑰匙：只給這一個 repository、只給推送權限、用完即撤銷。
-> 若不想交出 token，用 B 或 C。
-
-#### B. 下載後在 GitHub 網頁上傳（不需要安裝任何工具）
-1. 下載 `scout-platform-py.zip`，解壓縮。
-2. GitHub → New repository → 建立空的 repository（私人或公開由領袖決定）。
-3. 在新 repository 按 **Add file → Upload files**，把解壓後資料夾內的東西**全部**拖進去
-   （如檔案太多，可只上載 `app.py`、`scout/`、`content/`、`templates/`、`static/`、`data/`、
-   `tools/`、`tests/`、`docs/` 及說明文件）。
-4. 按 Commit changes，完成。
-
-#### C. 用 git 或 GitHub Desktop（日後要自己更新的話最方便）
-```bash
-cd scout-platform-py
-git init -b main          # 或直接解壓 zip 後執行以下指令
-git config user.name "你的名字"
-git config user.email "你的電郵"
-git add .
-git commit -m "童軍進度平台：第一次上載"
-git remote add origin https://github.com/<你的帳號>/<repo>.git
-git push -u origin main
-```
-GitHub Desktop 的話：File → Add local repository → 選 `scout-platform-py` → Publish repository。
-
-### 以下東西不會上載（`.gitignore` 已設好）
-
-| 檔案／資料夾 | 原因 |
-| --- | --- |
-| `docs/screens/` | 110 張介面截圖（約 68 MB）；留在工作區，檢查腳本可隨時重拍，不入庫 |
-| `data/db/sessions.json` | 登入憑證（已清空才提交；程式會自動重建這個檔案） |
-| `data/uploads/*` | 童軍上載的相片，屬於個別帳戶的私人資料 |
-| `__pycache__/`、`.pytest_cache/`、`*.pyc` | 執行時產生的暫存檔 |
-| `.env`、`*.pem` | 任何秘密（SMTP 密碼、服務帳戶金鑰） |
-| `*.log`、`*.tmp` | 測試記錄等暫存檔 |
-
-`data/db/` 其餘的示範資料（示範領袖與七個示範童軍、獎章、內容）都會上載，
-這樣在任何電腦 clone 下來都可以直接 `python3 app.py` 開來試玩。
-
-### 檔案大小
-
-截圖已排除，repository 約 **22 MB**（163 個檔案）：程式、內容題庫、離線試玩檔與測試都在內。
-需要看畫面時，在平台這裡開 `docs/screens/` 就可以，或用 `tools/checks/` 內的檢查腳本重拍。
-
-### 日後更新
-
-- 平台代你推送：改完之後說一聲「更新 GitHub」，平台會再推一次。
-- 自己推送：把新的檔案覆蓋到同一個資料夾，然後 `git add -A && git commit -m "說明" && git push`。
+程式問題可 revert merge commit，或在 Vercel Promote 上一個成功 deployment。正式資料在 Google Sheet／Drive，不應隨程式回滾或被 seed 覆寫。
 
 ---
 
@@ -1431,9 +850,7 @@ POST /badges/<id>/start   開始冒險（fetch → JSON{ok, trail, credited}；�
 | 題目、選項、正確答案 | 領袖後台 → 🕯️ 編輯題目與答案（寫入試算表的 `tasks` 分頁） |
 | 遊戲內的按鈕文字 | `content/member-badge/cave.json` 的 `labels` |
 
-2026-10-17 的例子：旅巾由綠色改為紫色、兩邊綠紅條紋 —— 換了 `wall-group.jpg`、
-改了壁畫三的文字，丙14 的選項與種子答案也一併更新（種子只在**首次建立**時寫入，
-所以領袖已在平台改過的答案不會被覆蓋）。
+更新壁畫時，圖片、教學文字、題目與解說要一起核對。旅團人物、區會、旅巾及旅慶等專屬資料必須先由領袖核實；種子只在**首次建立**時寫入，所以領袖已在平台改過的答案不會被覆蓋。
 
 ---
 
@@ -1441,7 +858,7 @@ POST /badges/<id>/start   開始冒險（fetch → JSON{ok, trail, credited}；�
 
 走出洞口時，成績以**百分比**顯示，不再只是「78 分」：
 
-   78% — 50 題中第一次就答對 39 題
+   80% — 50 題中第一次就答對 40 題
    全程共作答 87 次，其中 37 次答錯。上面的百分比只看第一次作答 —— 起初多錯幾題，百分比就會低一些。
 
 - **百分比＝第一次作答就答對的題數 ÷ 50。** 答錯後重試、被死路送回壁畫再答，
@@ -1483,8 +900,13 @@ POST /badges/<id>/start   開始冒險（fetch → JSON{ok, trail, credited}；�
   考核卡上有一粒清楚標明「示範：模擬領袖批准」的按鈕代替。
 - 舊的代碼路由（`/tasks/<id>/bridge-code`、`/drill-code`）與 `bridge_assess_code`、
   `drill_assess_code` 設定已移除。
-
----
+- **龍虎榜不受批准影響**：玩完遊戲（`crossed`／`studied`）即時上「會員章 · 各遊戲」榜，
+  不必等領袖批准。批准只決定第 5／6 項是否完成、發不發分與積分。
+  榜上未批准的童軍每個遊戲顯示「等批准」小標，名次照計。
+- **各遊戲各有各的量尺**：遊戲 1 看答對百分比（高分先）；遊戲 2、3 看完成時間（快者先），
+  時間由遊戲頁自己計（`elapsed_ms`），存在該筆記錄 `answers_json` 的 `_ms`；
+  8 秒以下或 6 小時以上當作沒有計時 —— 仍然見到玩完，但榜上不排名次。舊記錄沒有時間，
+  一樣列在榜尾（「沒有計時」）。
 ---
 
 ### 尋寶圖的光跟人走（2026-10-18 起）
@@ -1615,81 +1037,23 @@ POST /badges/<id>/start   開始冒險（fetch → JSON{ok, trail, credited}；�
 
 <sub>來源 / source: `DEMO.md`</sub>
 
-### 開啟 / Open
-
-- **實機 / Live preview:** Arena 的 **LIVE PREVIEW → Scout platform**（連接埠 5001）。直接複製預覽代理網址可能需要 Arena 的存取權杖；請由面板進入。
-- **離線 / Offline:** 開啟 [`demo-preview.html`](demo-preview.html)。這是獨立檔案；不需要伺服器、網絡或 cookie。瀏覽器中可玩完整的第一個遊戲。
-- **重新建立離線檔:** `python3 tools/offline_demo.py`。改完模板、圖像或本機山洞題目後請重新建立。
-
-預覽 iframe 可能封鎖第三方 cookie。實機登入後會沿 `?sid=…` 帶着工作階段，所以在預覽內也可以跳頁；這是登入憑證，請不要轉寄含 `sid` 的網址。
-
-### 登入 / Sign in
-
-登入畫面是營地：**水獺 → 老虎 → 海鷗**三個小隊按鈕；右下角是低調的**領袖入口**。點隊名後選童軍名字。童軍**不能自行註冊**；第一次登入不用密碼，之後可自行設定密碼和電郵。
-
-| 要示範的身分 | 方法 |
-|---|---|
-| 童軍 `demo2` | 登入頁 → 領袖入口 → 示範童軍；或走正常小隊／姓名登入（已設密碼的帳戶 `scout01`–`scout06`：`scout1234`） |
-| 領袖 `demo1` | 登入頁右下角 → 只輸入代碼 **`0082`**；可由領袖登入卡選示範領袖 |
-| 首次登入童軍 `demo3` | 選海鷗小隊 → 吳卓穎；不需要密碼，但**必須**填寫新密碼 + 電郵（兩項齊備才可進入平台；離線檔同樣擋下，且不會保留你輸入的密碼） |
-
-示範帳戶只在**示範部署**出現：本機要加 `DEMO_LOGIN=true SEED_DEMO=true`，離線檔已內建；正式上線（Vercel）兩者都關上，第一次開啟會顯示「建立第一位領袖」，帳戶全部由領袖建立（見 `docs/05-vercel.md`）。伺服器的 `/login/demo/demo1`、`…/demo2` 和 `…/demo3` 是 **POST** 捷徑，不能直接貼進地址列。離線檔的示範按鈕可以直接點；實機版使用上表入口。英文可在語言切換鍵或 `/set-language/en` 選擇。
-
-### 童軍三分鐘路線 / Scout walkthrough
-
-1. 主頁只見問候（日行一善與公告）、五個彩色進度性獎章方格和最多四則建議，按「顯示全部」可展開。**主頁沒有積分卡**；餘額只在「獎勵」。
-2. 按 **會員章**。唯一的入口頁標題是 **「你被困住了！」**：在荒島上走過五個區域，路線末端是沙灘與木筏。從主頁方格或獎章總覽進入，都到同一頁。**第一區 · 叢林深處**的地圖標記上直接寫明 **遊戲 1 · 童軍歷史山洞**的玩法，不必選位置或查看下方說明面板。頁面最下方只有**一個開始歷險按鈕**，一按就進入山洞，沒有「划出去」或第二次「開始遊戲」。開啟地圖或進入山洞都不會暗中完成任務。
-3. 第一區**沒有其他任務**；原來「4. 童軍大考驗」由山洞遊戲取代，**沒有第二份試卷**。會員章頁面不再顯示「童軍綱要參考」入口。
-4. 畫面分兩層：**上面是圖，下面的文字卡放在圖的下方**，任何訊息（壁畫時間線、死路提示、回頭故事、錯題檢討）都不會蓋住圖畫；圖畫完整顯示，不會被裁走。長文字在下方自己捲動：**遊戲框開到最大**：框佔整個畫面（`min(62rem, 100dvh − 6.5rem)`，遊戲頁只保留品牌列、分頁、語言鍵與麵包屑，自動收起童軍姓名那一行），圖畫跟着框放大；文字排在图畫下方，字太長時**在框內的文字區向下捲動**，底部淡出並顯示「▾ 向下捲動」，捲到最後一行提示消失，右側另有可見捲軸；每次轉場回到該卡的開頭。手機版框自動變成整頁捲動。依次看四幅壁畫與可讀的時間線，進石室逐題選路；錯路會顯示圖片與史實補充，卡片下方同時顯示**火把還可以錯幾次**。同一段錯足**三次**，就會有一個故事把你送回這一幅壁畫（火把熄了、走錯路繞回原處、洞裡太悶昏倒、太累要休息、碎石封路、筆記留在壁畫前；每次抽一個，六段故事輪着來），這一組要由第一題重新答，之前答錯的題仍照樣計分。全程 50 題，每題 2 分；**走到洞口即自動通關，無論得分多少，毋須再次提交或重玩**。分數按第一次選擇計算，只供檢討錯題；離線檔也會按你實際選的答案計分，而非預設分數。**途中按頁首「主頁」、「會員章」或其他離開入口會先顯示提示**：可繼續遊戲而保留本次作答，或確認離開；離開後再進入須由頭開始。實機版於作答期間也會用瀏覽器的通用提示補足返回、重新整理及關閉分頁。
-網上正式網站（Vercel）：見 `docs/05-vercel.md`。正式站沒有示範帳戶 —— 第一次開啟會顯示「建立第一位領袖」，之後由領袖建立童軍帳戶；想示範給人看，用本檔的離線檔 `demo-preview.html`。
-
-5. 洞口結果卡的**第一顆按鈕**是「🎮 繼續歷程 · 進入遊戲 2（迷霧渡口）」：一按即接上第 2 區的渡口；「再玩一次山洞」改為次要按鈕。通關後離開山洞**不再提示**（提示只留給未走完的行程）；已完成的第 1 區在地圖上保留一個小門「🎮 再玩一次」，可隨時重玩遊戲 1，不影響已完成記錄。
-6. 通關返回地圖時顯示 **1 / 5 個遊戲已完成**。此後再玩**由遊戲 2 開始**（地圖底部單一按鈕變為「🎮 繼續歷險 · 進入遊戲 2」），第 1 區仍可自行重玩。第 2–5 區各有一個遊戲位置，但領袖尚未提供內容，現時顯示「即將推出」且不會自動完成。**五個不同遊戲全部通關才頒發會員章**，之後才解鎖下一枚獎章。
-7. 頁首的 **🏠 主頁** 在離線和實機畫面均可返回。其餘四個獎章維持彩色圖示與鎖定標記；龍虎榜分三張榜（每個遊戲各自一張小榜／積分／獎章），各自排名。
-
-> **綱要資料仍然保留，但不在遊戲頁面提供入口。** 實機版已知的 `/badges/<id>/requirements` 網址仍可打開既有的 11 條說明與資源，供學習、領袖核實及日後校對；它們不算另外 11 個通關條件。領袖文件列出的是第 1–10 項，正式文案與後續四個遊戲應以領袖提供的內容為準。第 4 項的舊 Google 表單不再用於本遊戲；其他參考資源依原頁保留。
-
-### 領袖手動改山洞題目 / Edit game 1 questions
-
-這個功能須用**實機版**，離線檔的領袖畫面只供點按示範，不能儲存修改。
-
-1. 以 `demo1` 登入領袖入口（代碼 `0082`）→ **內容** → **會員章** → **第 4 項 M04** → **🕯️ 編輯山洞題目與答案**；亦可從會員章任務清單的 🕯️ 按鈕直達。
-2. 從四面壁畫的題目清單選一題，修改中文／英文問題及選項，按圓點選正確答案；最後檢查中文／英文**錯路溫習提示**並按 **💾 儲存這一題**。前三個中文選項必填；第四個可留空。請勿更改題號、四組順序，或改用一般小測驗文字框貼上整份題庫。
-3. 新開始的遊戲使用改後版本；已完成的童軍紀錄不會重設。有人玩到一半時，該局依入洞時看到的版本計分。以 `demo2` 試玩，檢查新題目、選項、錯路及答案；史實若改變，亦應請維護者核對教學壁畫。
-4. 若實機使用本機 `data/db/tasks.json`，修改後在專案目錄執行 `python3 tools/offline_demo.py`，才會把相同 50 題號的本機題庫複製到新的 `demo-preview.html`。**離線檔不會即時同步，也不會複製帳戶／成績。** Google Sheets 資料目前不會自動匯入離線產生器。
-
-**English:** Leader → Content → Member Badge → M04 → **Edit cave questions & answers**. Choose one of the 50 questions; edit its bilingual prompts and choices, select the correct answer, revise the dead-end recap, then save. Existing progress is safe; rebuild the offline HTML after local-data edits.
-
-### 領袖準備遊戲 2–5 / Leader setup
-
-在實機版進入 **領袖 → 內容 → 會員章**：
-
-1. 先按「在此獎章加入任務」，填入中文、英文標題與內容，在任務編輯器輸入實際題目或清單，檢查後發佈。平台會自動產生唯一任務代號。
-2. 開啟 **🎮 五區遊戲設定**；第一區山洞固定為遊戲 1，但五個區域的中英文名稱可改。逐區把一項**新建、已發佈、有內容的任務**指派給遊戲 2–5，並補上雙語遊戲簡介。
-3. 未指派的區域仍然鎖住；第 1–11 項原有的綱要任務不能冒充遊戲 2–5；同一任務也不能佔多個遊戲位置。已有童軍作答的普通任務不能倒過來當作一個全新的遊戲，以免自動通關。
-4. 領袖仍可在後台開設童軍、編輯其他獎章／公告／獎品、審批待核實提交；**核實綱要項目不會直接頒發會員章**，會員章只看五個遊戲。
-
-後四個遊戲的名稱、題目與玩法尚待領袖提供，現階段**不會猜造內容**。結構已備妥；若新遊戲需要獨特玩法而非現有任務類型，可在取得要求後擴充。
-
-### 離線範圍 / Offline scope
-
-想看**只有遊戲 2** 的畫面，開 `bridge-preview.html`（由 `python3 tools/bridge_preview.py` 產生）：一個檔案、遊戲即開，三關鋪好會有通關卡。完整故事與遊戲 2 都在 `demo-preview.html`。
-
-`demo-preview.html` 有 **14 個內嵌畫面**（新增第一次登入的必填表單），內嵌圖像與腳本，不會抓外部資源，亦不含任何工作階段憑證。遊戲 1 的 50 題、錯路、離開提示、實際計分、錯題檢討及 1/5 地圖進度可離線操作，之後按一顆按鈕接著玩**遊戲 2 · 迷霧渡口**（三關木板次序：教學牌給原文與說明 —— 銘言、誓詞、規律一字一句照著讀，每句之下有一行說明，鋪木板時空格按句子排成一行，木板切到單詞共 39 塊，四塊一樣的「對」、七塊一樣的「童軍」可以互換），過橋後地圖走到 2/5，而第 1、2 區各自留下「🎮 再玩一次」小門可重玩；領袖代碼卡與領袖首頁可預覽。新增帳戶、編輯題目、儲存伺服器積分和跨裝置同步須使用實機版。
-
-### 驗證 / Checks
+正式部署不會建立示範帳戶。只有在本機明確設定以下兩項時，才會載入開發 fixture：
 
 ```bash
-python3 -m pytest -q
-LD_LIBRARY_PATH=/tmp/syslibs python3 tools/checks/check_offline.py
-LD_LIBRARY_PATH=/tmp/syslibs python3 tools/checks/check_cave.py --fast
-LD_LIBRARY_PATH=/tmp/syslibs python3 tools/checks/check_bridge.py
-LD_LIBRARY_PATH=/tmp/syslibs python3 tools/checks/check_cave_editor.py --fast
-LD_LIBRARY_PATH=/tmp/syslibs python3 tools/checks/check_exit.py
+DEMO_LOGIN=true SEED_DEMO=true python app.py
 ```
 
-已存在的本機示範資料可以跑 `DATA_DIR=./data SEED_DEMO=false python3 tools/migrate_member_five_games.py` 更新五遊戲設定及山洞的舊預設合格文案；腳本不刪帳戶、進度或積分，已完成的第 4 項仍計作遊戲 1。
+Fixture 仍可包含歷史相容流程（例如有小隊的舊資料），用途是驗證舊 URL 及資料格式不會在升級時損壞；它不是荃灣第 7 旅正式名單，也不會由 `.vercelignore` 上傳至 Vercel。
 
-獎章圖片源自香港童軍總會《童軍訓練綱要》：<https://scoutsinfohub.org.hk/scout-training-scheme>。
+正式驗收應使用一個全新臨時資料目錄，確認：
+
+1. `/setup` 建立第一位領袖。
+2. 領袖毋須選小隊即可建立成員。
+3. `/login` 直接列出所有成員姓名。
+4. 首次登入設定密碼與電郵。
+5. 完成個人檔案、遊戲、提交及領袖審批。
+6. 使用 Google Sheets 測試時，Redeploy 後資料仍存在。
+
+示範密碼只屬自動化 fixture，絕不可用作正式領袖或成員密碼。
 
 ---
