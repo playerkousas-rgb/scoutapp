@@ -2,7 +2,7 @@
 {% block title %}{{ L(quest.title_zh, quest.title_en) }}{% endblock %}
 
 {% block content %}
-{% set animal = url_for('static', filename='img/mascots/' ~ (user.patrol | lower) ~ '.webp') %}
+{% set animal = url_for('static', filename='img/mascots/' ~ (user.patrol | lower) ~ '.webp') if uses_patrols else '' %}
 {% set beats = quest.beats_zh if lang != 'en' else quest.beats_en %}
 {% set done_areas = stages | selectattr('done') | list | length %}
 {% set games_done = stages | selectattr('game_done') | list | length %}
@@ -56,7 +56,7 @@
     <p class="story-lead">{{ L(quest.story_lead_zh, quest.story_lead_en) }}</p>
     <div class="story-beacon">
       <span class="story-beacon-face">
-        <img src="{{ animal }}" alt="">
+        {% if animal %}<img src="{{ animal }}" alt="">{% else %}<span class="tw7-mark" aria-hidden="true">TW7</span>{% endif %}
       </span>
       <span class="story-beacon-text">
         <strong>🔥 {{ L(quest.route_zh, quest.route_en) }}</strong>
@@ -193,7 +193,7 @@
                   </span>
                   {% if stage.next %}
                     <span class="stage-chip-me" title="{{ L('你在這裡', 'You are here') }}">
-                      <img src="{{ animal }}" alt="">
+                      {% if animal %}<img src="{{ animal }}" alt="">{% else %}<span aria-hidden="true">🧭</span>{% endif %}
                     </span>
                   {% endif %}
                 </div>

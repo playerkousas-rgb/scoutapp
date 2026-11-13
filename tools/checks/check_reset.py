@@ -91,8 +91,8 @@ def build_site() -> tuple[object, pathlib.Path]:
     store.save_setting("smtp_tls", "none")
     store.save_setting("smtp_user", "")
     store.save_setting("smtp_password", "")
-    store.save_setting("smtp_from", "82hkg@example.com")
-    store.save_setting("unit_name_zh", "港島第八十二旅童軍團")
+    store.save_setting("smtp_from", "tw7@example.com")
+    store.save_setting("unit_name_zh", "香港童軍總會荃灣第7旅")
     store.save_setting("reset_link_minutes", 60)
     return app, store, workdir
 
@@ -168,7 +168,7 @@ def main() -> int:
                     problems.append(f"letter went to {letter['to']}, expected {email_on_file}")
                 if "Reset" not in letter["subject"]:
                     problems.append(f"the subject does not name the reset: {letter['subject']!r}")
-                for wanted in ("重設", "港島第八十二旅童軍團", "王小明", "Wong Siu Ming", "60"):
+                for wanted in ("重設", "香港童軍總會荃灣第7旅", "王小明", "Wong Siu Ming", "60"):
                     if wanted not in letter["body"]:
                         problems.append(f"the letter is missing {wanted!r}")
                 if "scout1234" in letter["body"]:

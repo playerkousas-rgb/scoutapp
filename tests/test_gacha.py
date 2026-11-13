@@ -107,18 +107,18 @@ def test_points_buy_a_normal_pack_only(store, new_scout):
 def test_album_is_split_into_categories(store, new_scout):
     sections = gacha.album_sections(gacha.sync_earned_packs(store, new_scout.user))
     assert [row["id"] for row in sections] == [
-        "membership", "history", "patrol", "knots", "drill", "camping",
+        "membership", "history", "knots", "drill", "camping",
         "pursuit", "service", "interest",
     ]
-    assert sum(row["total"] for row in sections) == 46
+    assert sum(row["total"] for row in sections) == 43
     assert sections[0]["show_family"] and sections[0]["family"] == "skill"
-    assert sections[6]["show_family"] and sections[6]["family"] == "badge"
+    assert sections[5]["show_family"] and sections[5]["family"] == "badge"
     page = new_scout.get("/cards").get_data(as_text=True)
     assert "技能卡" in page and "會員章" in page and "專科徽章" in page and "技能組" in page
     # every card is shown by default; a category only narrows the album
     assert "全部卡" in page and "選一個類別" not in page
     assert "童軍誓詞" in page and "平結" in page
-    assert page.count("mini-card") == 46
+    assert page.count("mini-card") == 43
     assert page.index("會員章") < page.index("繩結") < page.index("技能組")
     knots = new_scout.get("/cards?cat=knots").get_data(as_text=True)
     assert "平結" in knots and "稱人結" in knots

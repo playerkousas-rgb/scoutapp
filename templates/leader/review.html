@@ -47,7 +47,7 @@
             <div class="grow">
               <strong>{{ name_of(row.who) }}</strong>
               <div class="small muted">
-                {{ L(patrol_label(row.who.get('patrol', '')).zh, patrol_label(row.who.get('patrol', '')).en) }} ·
+                {% if uses_patrols %}{{ L(patrol_label(row.who.get('patrol', '')).zh, patrol_label(row.who.get('patrol', '')).en) }} ·{% endif %}
                 {{ L(row.badge.get('title_zh', ''), row.badge.get('title_en', '')) }}
               </div>
             </div>

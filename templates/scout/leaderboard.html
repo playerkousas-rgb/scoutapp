@@ -23,10 +23,10 @@
   </div>
 
   <div class="patrol-pills">
-    <a class="patrol-pill {{ 'active' if scope == 'unit' else '' }}" href="{{ url_for('scout_routes.leaderboard_page', scope='unit', period=period) }}">{{ L('全部小隊', 'All patrols') }}</a>
-    {% for p in patrols %}
+    <a class="patrol-pill {{ 'active' if scope == 'unit' else '' }}" href="{{ url_for('scout_routes.leaderboard_page', scope='unit', period=period) }}">{{ L('全部成員', 'All members') if not uses_patrols else L('全部小隊', 'All patrols') }}</a>
+    {% if uses_patrols %}{% for p in patrols %}
       <a class="patrol-pill {{ 'active' if patrol == p else '' }}" href="{{ url_for('scout_routes.leaderboard_page', scope='patrol', patrol=p, period=period) }}">{{ patrol_name(p) }}</a>
-    {% endfor %}
+    {% endfor %}{% endif %}
   </div>
 
   {# ── 你在三張榜的位置：一眼看到，不用逐張找 ── #}
@@ -80,7 +80,7 @@
                     <span class="lb-avatar">{{ row.avatar }}</span>
                     <span class="grow">
                       <strong>{{ name_of(row) }}</strong>
-                      <div class="small muted">{{ L(patrol_label(row.patrol).zh, patrol_label(row.patrol).en) }}</div>
+                      {% if uses_patrols %}<div class="small muted">{{ L(patrol_label(row.patrol).zh, patrol_label(row.patrol).en) }}</div>{% endif %}
                     </span>
                     {% if row.value is not none %}
                       <span class="chip brass">{{ ('🎯 ' ~ row.value ~ '%') if game.metric == 'percent' else (('🎯 ' ~ row.value ~ '/30') if game.metric == 'score' else ('⏱ ' ~ (row.value | mmss))) }}</span>
@@ -121,7 +121,7 @@
                 <span class="lb-avatar">{{ row.avatar }}</span>
                 <span class="grow">
                   <strong>{{ name_of(row) }}</strong>
-                  <div class="small muted">{{ L(patrol_label(row.patrol).zh, patrol_label(row.patrol).en) }}</div>
+                  {% if uses_patrols %}<div class="small muted">{{ L(patrol_label(row.patrol).zh, patrol_label(row.patrol).en) }}</div>{% endif %}
                 </span>
                 <span class="chip brass">🪙 {{ row.earned }}</span>
                 <span class="chip light" title="{{ L('餘額（扣除換獎品）', 'Balance after rewards') }}">{{ L('餘', 'Bal') }} {{ row.balance }}</span>
@@ -157,8 +157,8 @@
                 <span class="grow">
                   <strong>{{ name_of(row) }}</strong>
                   <div class="small muted">
-                    {{ L(patrol_label(row.patrol).zh, patrol_label(row.patrol).en) }}
-                    {% if row.emojis %}· {{ row.emojis | join(' ') }}{% endif %}
+                    {% if uses_patrols %}{{ L(patrol_label(row.patrol).zh, patrol_label(row.patrol).en) }}{% endif %}
+                    {% if row.emojis %}{% if uses_patrols %}· {% endif %}{{ row.emojis | join(' ') }}{% endif %}
                   </div>
                 </span>
                 <span class="chip brass">🎖 {{ row.badges }}</span>

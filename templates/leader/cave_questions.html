@@ -10,7 +10,7 @@
 <div class="page-head">
   <div>
     <h1 style="margin:0">🕯️ {{ L('編輯山洞題目', 'Edit cave questions') }}</h1>
-    <p class="muted small" style="margin:.3rem 0 0">{{ L('四段壁畫 · 50 題。一次修改及儲存一題；題號與分組保持不變。', 'Four walls · 50 questions. Edit and save one question at a time; its ID and group stay fixed.') }}</p>
+    <p class="muted small" style="margin:.3rem 0 0">{{ L('四段壁畫 · ' ~ question_count ~ ' 題。一次修改及儲存一題；題號與分組保持不變。', 'Four walls · ' ~ question_count ~ ' questions. Edit and save one question at a time; its ID and group stay fixed.') }}</p>
   </div>
   <a class="btn ghost" href="{{ url_for('leader_routes.cave_walls', task_id=task.id, wall=section.n) }}">🖼️ {{ L('編輯這幅壁畫', 'Edit this wall') }}</a>
   <a class="btn ghost" href="{{ url_for('leader_routes.content') }}">{{ L('返回內容', 'Back to content') }}</a>
@@ -45,7 +45,7 @@
     <form class="card cave-editor-form" method="post"
           action="{{ url_for('leader_routes.save_cave_question', task_id=task.id, bank_index=index) }}">
       <input type="hidden" name="question_id" value="{{ question.id }}">
-      <span class="chip light">{{ section.icon }} {{ L(section.name_zh, section.name_en) }} · {{ question.id }} · {{ position + 1 }} / 50</span>
+      <span class="chip light">{{ section.icon }} {{ L(section.name_zh, section.name_en) }} · {{ question.id }} · {{ position + 1 }} / {{ question_count }}</span>
       <h2>{{ L('修改題目及答案', 'Edit question & answer') }}</h2>
       <p class="small muted">{{ L('請保留題號及四組的順序。選擇正確答案時，點選對應選項左邊的圓點。', 'The question ID and its wall stay fixed. Select the correct answer with the radio button next to its choice.') }}</p>
       <div class="form-grid">

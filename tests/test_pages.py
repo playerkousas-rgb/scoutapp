@@ -31,8 +31,8 @@ def test_every_leader_page_renders(leader_client, extras_on):
         assert response.status_code == 200, path
 
 
-def test_header_shows_the_82nd_hong_kong_island_scout_group(scout_client, leader_client):
-    name = "港島第八十二旅童軍團"
+def test_header_shows_the_tw7_scout_group(scout_client, leader_client):
+    name = "香港童軍總會荃灣第7旅"
     for visitor, path in ((scout_client, "/home"), (leader_client, "/leader")):
         page = visitor.get(path).get_data(as_text=True)
         assert f"<strong>{name}</strong>" in page
@@ -411,7 +411,7 @@ def test_a_full_patrol_fits_the_sign_in_name_list(app, store):
         store.insert("users", {
             "role": "scout", "username": f"seagull-extra-{index}", "password_hash": hashed,
             "password_salt": salt, "display_name_zh": zh, "display_name_en": en, "email": "",
-            "scout_no": f"E{index}", "section": "scout", "patrol": patrol, "unit": "港島第八十二旅童軍團",
+            "scout_no": f"E{index}", "section": "scout", "patrol": patrol, "unit": "香港童軍總會荃灣第7旅",
             "avatar": "🦊", "status": "active", "must_change_password": False,
             "show_on_leaderboard": True, "created_at": "2026-01-01T00:00:00", "created_by": "test",
         })
@@ -471,32 +471,29 @@ def test_the_scene_image_is_served_and_reasonably_sized(client):
     assert 40_000 < len(art.get_data()) < 900_000                  # crisp, but quick to load
 
 
-def test_the_group_logo_is_served_and_used(client):
-    """The 82HKG logo: on the front page, in the topbar of every page, as favicon."""
-    logo = client.get("/static/img/brand/82hkg-logo.webp")
-    assert logo.status_code == 200 and len(logo.get_data()) > 20_000
-    assert client.get("/static/img/brand/favicon.png").status_code == 200
+def test_the_tw7_mark_and_g11_icons_are_served_and_used(client):
+    for name in ("favicon.ico", "favicon-16.png", "favicon-32.png", "apple-touch-icon.png",
+                 "icon-192.png", "icon-512.png", "icon-maskable-192.png",
+                 "icon-maskable-512.png", "og-image.png"):
+        assert client.get(f"/icons/{name}").status_code == 200
 
     login = client.get("/login").get_data(as_text=True)
-    assert "/static/img/brand/82hkg-logo.webp" in login
-    assert 'class="scene-hud tr"' in login             # top-right corner, not the middle
-    assert 'class="scene-hud tc"' not in login
-    assert 'class="scene-hud.tr"' not in login          # the dot-in-a-class typo, gone
+    assert "tw7-mark" in login and ">TW7<" in login
+    assert "/icons/favicon.ico" in login and "/manifest.webmanifest" in login
 
 
-def test_the_topbar_and_favicon_carry_the_logo(app, store):
-    """Signed-in pages wear it, and the tab icon is no longer an emoji."""
+def test_the_topbar_and_favicon_carry_the_tw7_brand(app, store):
     client = app.test_client()
     client.post("/login/demo/demo2")
     page = client.get("/home").get_data(as_text=True)
-    assert 'class="brand-logo"' in page
-    assert "img/brand/favicon.png" in page
+    assert 'class="tw7-mark brand-logo"' in page
+    assert "/icons/favicon-16.png" in page
     assert "svg+xml,<svg xmlns" not in page
 
 
-def test_the_leader_login_page_shows_the_logo(client):
+def test_the_leader_login_page_shows_the_tw7_mark(client):
     page = client.get("/login/leader").get_data(as_text=True)
-    assert "card-logo" in page and "82hkg-logo.webp" in page
+    assert "card-logo" in page and ">TW7<" in page
 
 
 def test_mascot_artwork_is_served(client):

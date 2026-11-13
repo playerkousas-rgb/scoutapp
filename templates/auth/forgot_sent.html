@@ -5,12 +5,12 @@
   <div class="narrow card pad-lg">
     <div class="crumbs">
       <a href="{{ url_for('auth_routes.login') }}">{{ L('登入', 'Sign in') }}</a>
-      <span class="breadcrumb-arrow">›</span>
-      <a href="{{ url_for('auth_routes.scout_names', patrol=patrol) }}">{{ patrol_label.en or patrol_label.zh }}</a>
+      {% if uses_patrols %}<span class="breadcrumb-arrow">›</span>
+      <a href="{{ url_for('auth_routes.scout_names', patrol=patrol) }}">{{ patrol_label.en or patrol_label.zh }}</a>{% endif %}
     </div>
     <h1 style="margin-bottom:.2rem">📨 {{ L('請查看你的電郵', 'Check your email') }}</h1>
     <p class="muted" style="margin:.15rem 0 .6rem">
-      {{ patrol_label.en or patrol_label.zh }} · {{ scout.display_name_zh or scout.display_name_en }}
+      {% if uses_patrols %}{{ patrol_label.en or patrol_label.zh }} · {% endif %}{{ scout.display_name_zh or scout.display_name_en }}
     </p>
 
     {% if again %}
@@ -30,7 +30,7 @@
       <dt>{{ L('找不到？', 'Not there?') }}</dt><dd>{{ L('看看垃圾郵件箱，或再寄一次。', 'Check the spam folder, or resend it.') }}</dd>
     </div>
 
-    <form method="post" action="{{ url_for('auth_routes.forgot_send_link', patrol=patrol, user_id=scout.id) }}">
+    <form method="post" action="{{ url_for('auth_routes.forgot_send_link', patrol=patrol, user_id=scout.id) if uses_patrols else url_for('auth_routes.forgot_send_link', user_id=scout.id) }}">
       <button class="btn primary" type="submit" style="width:100%">{{ L('再寄一次', 'Send it again') }}</button>
     </form>
 
@@ -38,10 +38,10 @@
     <p class="small muted" style="margin:0 0 .4rem">
       {{ L('電郵遲遲未到？也可以直接在這個平台設定新密碼。', 'Email taking too long? You can also set a new password right here.') }}
     </p>
-    <a class="link-btn" href="{{ url_for('auth_routes.forgot_scout', patrol=patrol, user_id=scout.id) }}">
+    <a class="link-btn" href="{{ url_for('auth_routes.forgot_scout', patrol=patrol, user_id=scout.id) if uses_patrols else url_for('auth_routes.forgot_scout', user_id=scout.id) }}">
       {{ L('用電郵即時設定新密碼', 'Set a new password with your email') }}
     </a>
-    <a class="link-btn" href="{{ url_for('auth_routes.scout_password', patrol=patrol, user_id=scout.id) }}">
+    <a class="link-btn" href="{{ url_for('auth_routes.scout_password', patrol=patrol, user_id=scout.id) if uses_patrols else url_for('auth_routes.scout_password', user_id=scout.id) }}">
       {{ L('返回輸入密碼', 'Back to the password page') }}
     </a>
   </div>

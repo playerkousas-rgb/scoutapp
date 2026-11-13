@@ -39,6 +39,9 @@ os.environ.setdefault("SECRET_KEY", "offline-demo")
 os.environ["DATA_DIR"] = tempfile.mkdtemp(prefix="offline-demo-")
 os.environ["SEED_DEMO"] = "true"
 os.environ.setdefault("DEMO_LOGIN", "true")
+# This self-contained preview deliberately carries the temporary session token
+# in its generated links; production remains cookie-only by default.
+os.environ["ALLOW_URL_SESSION"] = "true"
 
 from app import create_app                                  # noqa: E402
 

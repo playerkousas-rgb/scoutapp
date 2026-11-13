@@ -70,7 +70,7 @@ def is_configured(cfg: dict) -> bool:
 
 
 def mask_email(address: str) -> str:
-    """A hint, not the address: `sc***@82hkg.example` — enough to be recognised."""
+    """A hint, not the full address: enough for the member to recognise."""
     address = str(address or "").strip()
     if "@" not in address:
         return "***"
@@ -159,7 +159,7 @@ Someone asked to reset the password for your {unit_zh} scout account. Open this 
 """
 
 
-def send_reset_link(cfg: dict, user: dict, link: str, unit_zh: str = "港島第八十二旅童軍團") -> tuple[bool, str]:
+def send_reset_link(cfg: dict, user: dict, link: str, unit_zh: str = "香港童軍總會荃灣第7旅") -> tuple[bool, str]:
     minutes = int(cfg.get("reset_link_minutes") or 60)
     subject = "重設童軍平台密碼 / Reset your scout platform password"
     body = reset_body(user.get("display_name_zh") or "", user.get("display_name_en") or "",
@@ -167,7 +167,7 @@ def send_reset_link(cfg: dict, user: dict, link: str, unit_zh: str = "港島第�
     return send(cfg, (user.get("email") or "").strip(), subject, body)
 
 
-def send_test(cfg: dict, to: str, unit_zh: str = "港島第八十二旅童軍團") -> tuple[bool, str]:
+def send_test(cfg: dict, to: str, unit_zh: str = "香港童軍總會荃灣第7旅") -> tuple[bool, str]:
     body = (f"這是一封測試郵件，由{unit_zh}的童軍進度平台寄出。\n"
             "你見到這封信，就表示重設密碼的電郵可以正常寄出。\n\n"
             "This is a test message from the scout platform. Mail is working — "

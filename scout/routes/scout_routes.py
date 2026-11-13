@@ -15,7 +15,7 @@ from itsdangerous import BadSignature, URLSafeTimedSerializer
 
 from ..auth import needs_first_time, public_user, scout_required
 from ..content import (cave_adventure, cave_images, ceremony, ceremony_questions,
-                       drill_images, drill_manual, drill_required_moves,
+                       drill_images, drill_manual, drill_required_moves, item4_questions,
                        river_adventure, river_images)
 from ..engine import (
     GAME_MAX_MS, GAME_MIN_MS, as_int, as_json, award_task_completion, build_suggestions,
@@ -293,7 +293,7 @@ def _cave_run_signer() -> URLSafeTimedSerializer:
 def _cave_run_key(task_id: str, questions: list[dict]) -> str:
     # Only the grading essentials go into the signed token, not the whole bank.
     # Each browser tab gets its own copy; nothing about a scout's run is stored
-    # until all 50 questions have been answered and the exit is reached.
+    # until all the full question bank have been answered and the exit is reached.
     return _cave_run_signer().dumps({
         "task": task_id, "scout": g.user["id"],
         "questions": [[q.get("id"), as_int_or(q.get("answer"), -1),
@@ -426,11 +426,11 @@ def task_player(task_id: str):
 @scout_routes.get("/tasks/<task_id>/cave")
 @scout_required
 def task_cave(task_id: str):
-    """第 4 項的洞穴歷險 — the badge's first game: four walls, then 50 questions.
+    """第 4 項的洞穴歷險 — the badge's first game: four walls, then the full question bank.
 
     The game is *client-side* (so it also plays inside the offline demo file):
-    this route hands it the wall paintings with their timelines, and the fifty
-    questions of the bank sorted into the four groups the walls teach, with the
+    this route hands it the wall paintings with their timelines, and the full
+    question bank sorted into the four groups the walls teach, with the
     options in a shuffled order and the words for every button. The answers are
     automatically filed on reaching the exit through `POST /tasks/<id>/cave-submit`
     — the only submission path for this item. There is no separate paper to sit.
@@ -512,10 +512,10 @@ def task_cave(task_id: str):
 @scout_routes.post("/tasks/<task_id>/cave-submit")
 @scout_required
 def cave_submit(task_id: str):
-    """Completing all 50 cave questions clears game 1, regardless of score.
+    """Completing the full generic cave bank clears game 1, regardless of score.
 
     The server still grades each first attempt for feedback, but it only files
-    a win when all 50 valid answers arrive. An incomplete POST cannot skip the
+    a win when every valid answer arrives. An incomplete POST cannot skip the
     walls, and the ordinary quiz pass mark still applies to OTHER tasks.
     """
     st = store()
@@ -527,7 +527,8 @@ def cave_submit(task_id: str):
         return fail(403, "badge_locked", "請先完成上一個進度性獎章", "Finish the earlier award first")
     config = as_json(task.get("config_json"), {})
     questions = [q for q in (config.get("questions") or []) if isinstance(q, dict)]
-    if len(questions) != 50:
+    expected_count = len(item4_questions() or [])
+    if not expected_count or len(questions) != expected_count:
         return fail(503, "cave_unavailable", "山洞遊戲正在準備中", "The cave is not ready yet")
     # An opened cave carries a signed snapshot of its 50 answer indices and
     # option counts. If a leader edits a question while a scout is playing,
@@ -541,7 +542,7 @@ def cave_submit(task_id: str):
             return fail(400, "cave_run_expired", "這一局的記錄已失效，請重新進入山洞。",
                         "This cave run expired. Please reopen the cave.")
         keys = run.get("questions") if isinstance(run, dict) else None
-        if (not isinstance(keys, list) or len(keys) != 50
+        if (not isinstance(keys, list) or len(keys) != expected_count
                 or run.get("task") != task_id or run.get("scout") != g.user["id"]
                 or any(not isinstance(row, list) or len(row) != 3
                        or row[0] != q.get("id") or type(row[1]) is not int
@@ -557,14 +558,14 @@ def cave_submit(task_id: str):
         sizes = [len(q.get("options") or []) for q in questions]
 
     # The cave shuffles options visually; each first attempt arrives as its
-    # original bank index. Require all 50 *valid* indices before giving credit.
+    # original bank index. Require every *valid* index before giving credit.
     # Merely POSTing an empty form or supplying impossible choices is not a run.
-    answers = [request.form.get(f"q{i}") for i in range(50)]
+    answers = [request.form.get(f"q{i}") for i in range(expected_count)]
     if any(answer is None or len(answer) > 3 or not answer.isdecimal() or
            not (0 <= int(answer) < size)
            for answer, size in zip(answers, sizes)):
-        return fail(400, "cave_incomplete", "請先完成山洞的全部 50 題。",
-                    "Finish all 50 cave questions before completing the game.")
+        return fail(400, "cave_incomplete", f"請先完成山洞的全部 {expected_count} 題。",
+                    f"Finish all {expected_count} cave questions before completing the game.")
 
     correct = sum(int(given) == answer for given, answer in zip(answers, expected))
     # The cave reports every graded tap: how many in all, and how many were

@@ -99,10 +99,14 @@ def _overview_context() -> dict:
         row["_awaiting"] = row.get("status") in AWAITING_APPROVAL
 
     patrol_rows = []
-    for patrol in (st.settings_cached().get("patrols") or ["Tiger", "Otter", "Seagull"]):
-        members = [u for u in scouts if u.get("patrol") == patrol]
+    configured_patrols = st.settings_cached().get("patrols") or []
+    groups = configured_patrols or [""]
+    for patrol in groups:
+        members = ([u for u in scouts if u.get("patrol") == patrol] if configured_patrols else scouts)
         patrol_rows.append({
-            "patrol": patrol, "label": patrol_label(patrol), "count": len(members),
+            "patrol": patrol,
+            "label": patrol_label(patrol) if patrol else {"zh": "全部成員", "en": "All members"},
+            "count": len(members),
             "badges": sum(st.stats_for(u["id"]).get("badges_done", 0) for u in members) if members else 0,
             "tasks": sum(st.stats_for(u["id"]).get("tasks_done", 0) for u in members) if members else 0,
         })
@@ -513,16 +517,17 @@ def _cave_editor_data(task_id: str):
     groups = adventure.get("groups") or []
     ids = [q.get("id") for q in questions if isinstance(q, dict)]
     placed = [qid for group in groups for qid in (group.get("questions") or [])]
-    if (len(questions) != 50 or len(ids) != 50 or len(set(ids)) != 50
-            or len(placed) != 50 or set(placed) != set(ids)):
-        abort(409, "The cave's 50 question IDs no longer match its four walls.")
+    expected = len(item4_questions() or [])
+    if (not expected or len(questions) != expected or len(ids) != expected
+            or len(set(ids)) != expected or len(placed) != expected or set(placed) != set(ids)):
+        abort(409, "The cave question IDs no longer match its four walls.")
     return st, task, badge, config, groups
 
 
 @leader_routes.get("/leader/content/tasks/<task_id>/cave-questions")
 @leader_required
 def cave_questions(task_id: str):
-    """Edit one of the cave's 50 questions without rewriting the other 49."""
+    """Edit one cave question without rewriting the rest of the bank."""
     _, task, badge, config, groups = _cave_editor_data(task_id)
     try:
         index = int(request.args.get("q", "0"))
@@ -553,8 +558,9 @@ def cave_questions(task_id: str):
     return render_template("leader/cave_questions.html", task=task, badge=badge,
                            sections=sections, section=section, question=selected,
                            choices=choices, index=index, position=position,
+                           question_count=len(wall_order),
                            prev_index=wall_order[position - 1] if position else None,
-                           next_index=wall_order[position + 1] if position < 49 else None)
+                           next_index=wall_order[position + 1] if position < len(wall_order) - 1 else None)
 
 
 @leader_routes.post("/leader/content/tasks/<task_id>/cave-questions/<int:bank_index>")
@@ -598,7 +604,7 @@ def save_cave_question(task_id: str, bank_index: int):
     updated = {**old, "q_zh": q_zh, "q_en": q_en, "options": options,
                "answer": int(answer), "explain_zh": recap_zh, "explain_en": recap_en}
     # The group lookup in /tasks/<id>/cave uses these IDs and the original bank
-    # indices. Never allow an edit to reorder or remove any of the 50 questions.
+    # indices. Never allow an edit to reorder or remove questions from the bank.
     config["questions"] = [updated if i == bank_index else q for i, q in enumerate(questions)]
     st.update("tasks", task_id, {"config_json": config, "updated_at": now_iso()})
     audit(g.user, "edit_cave_question", "tasks", task_id,
@@ -894,7 +900,7 @@ def update_task(task_id: str):
         return fail(409, "game_task_locked", "遊戲已掛接，不能更改任務代號、類型或發佈狀態",
                     "An assigned game's code, type and publish status are fixed")
     if _is_editable_cave(existing, badge):
-        # A generic quiz paste discards the IDs that connect the 50 questions
+        # A generic quiz paste discards the IDs that connect the the full question bank
         # to the four walls. Only the dedicated editor may change this bank.
         if any(key in request.form for key in ("quiz_zh", "quiz_en", "config_json")):
             return fail(400, "cave_questions", "請在「編輯山洞題目」逐題修改題目和答案。",
@@ -1078,7 +1084,8 @@ def review_action(record_id: str):
 def accounts():
     st = store()
     settings = st.settings_cached()
-    patrol_filter = request.args.get("patrol", "")
+    patrols = settings.get("patrols") or []
+    patrol_filter = request.args.get("patrol", "") if patrols else ""
     search = (request.args.get("q") or "").strip().lower()
     rows = []
     for user in st.list("users"):
@@ -1092,7 +1099,7 @@ def accounts():
         rows.append({**public_user(user), "stats": stats})
     rows.sort(key=lambda r: (str(r.get("patrol") or ""), str(r.get("display_name_zh") or "")))
     resets = [r for r in st.list("password_reset_requests") if r.get("status") == "pending"]
-    return render_template("leader/accounts.html", scouts=rows, patrols=settings.get("patrols") or [],
+    return render_template("leader/accounts.html", scouts=rows, patrols=patrols,
                            patrol_filter=patrol_filter, search=request.args.get("q", ""),
                            reset_requests=resets, reset_patrols={r.get("user_id"): r.get("patrol") for r in resets},
                            mail_ready=mailer.is_configured(mailer.config(settings)))
@@ -1106,8 +1113,9 @@ def create_scout():
     name_zh = (form.get("display_name_zh") or "").strip()
     if not name_zh:
         return fail(400, "bad_name", "請輸入姓名", "Enter a name")
-    patrol = (form.get("patrol") or "").strip()
-    if not patrol:
+    configured_patrols = st.settings_cached().get("patrols") or []
+    patrol = (form.get("patrol") or "").strip() if configured_patrols else ""
+    if configured_patrols and patrol not in configured_patrols:
         return fail(400, "bad_patrol", "請選擇小隊", "Pick a patrol")
     username = (form.get("username") or "").strip().lower()
     if not username:
@@ -1152,6 +1160,8 @@ def update_scout(user_id: str):
     form = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
     patch = {k: v for k, v in sanitize("users", form, partial=True).items()
              if k in {"display_name_zh", "display_name_en", "email", "scout_no", "patrol", "avatar", "unit"}}
+    if not st.settings_cached().get("patrols"):
+        patch.pop("patrol", None)
     if "show_on_leaderboard" in form:
         patch["show_on_leaderboard"] = to_bool(form["show_on_leaderboard"])
     record = st.update("users", user_id, patch)
@@ -1251,8 +1261,9 @@ def export_scouts():
 @leader_routes.post("/leader/accounts/import")
 @leader_required
 def import_scouts():
-    """CSV columns: username, display_name_zh, display_name_en, patrol, scout_no, email, avatar"""
+    """Import member accounts; patrol is optional and ignored in no-patrol mode."""
     st = store()
+    configured_patrols = st.settings_cached().get("patrols") or []
     text = ""
     if request.files.get("file"):
         text = request.files["file"].read().decode("utf-8", errors="replace")
@@ -1281,7 +1292,8 @@ def import_scouts():
             "display_name_zh": name_zh,
             "display_name_en": (row.get("display_name_en") or name_zh).strip(),
             "email": (row.get("email") or "").strip(), "scout_no": (row.get("scout_no") or "").strip(),
-            "section": "scout", "patrol": (row.get("patrol") or "").strip(),
+            "section": "scout",
+            "patrol": ((row.get("patrol") or "").strip() if configured_patrols else ""),
             "unit": st.settings_cached().get("unit_name_zh", ""), "avatar": (row.get("avatar") or "🦊").strip() or "🦊",
             "status": "active", "must_change_password": True, "show_on_leaderboard": True,
             "created_at": now_iso(), "created_by": g.user["id"],
@@ -1552,7 +1564,7 @@ def _builtin_specs() -> dict[str, dict]:
             elif config.get("kind") == "flag":
                 shape, size = "flag", 30
             elif config.get("bank") == "member-badge/item4":
-                shape, size = "list", len(item4_questions() or [])   # 洞裡的 50 題
+                shape, size = "list", len(item4_questions() or [])   # 洞裡的 完整題庫
             elif config.get("questions"):
                 shape, size = "list", len(config["questions"] or [])
             else:
@@ -1815,9 +1827,13 @@ def save_settings():
             st.save_setting("smtp_password", "")
         elif typed and set(typed) != {"•"}:
             st.save_setting("smtp_password", typed)
-    if request.form and request.form.getlist("patrols"):
+    # Official TW7 is intentionally no-patrol. Explicit demo fixtures retain
+    # the legacy setting so old-data compatibility can still be exercised.
+    if st.config.get("seed_demo") and request.form:
         patrols = [p.strip() for p in request.form.getlist("patrols") if p.strip()]
-        st.save_setting("patrols", patrols or DEFAULT_SETTINGS["patrols"])
+        st.save_setting("patrols", patrols or st.settings_cached().get("patrols") or [])
+    else:
+        st.save_setting("patrols", [])
     # Switches: an unticked checkbox posts nothing, so the settings form sends a
     # marker meaning “every switch on this page is here” — then absent = off.
     switches_posted = bool(request.form and request.form.get("switches") == "1")

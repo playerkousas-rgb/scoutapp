@@ -37,7 +37,7 @@ def test_a_ready_deployment_shows_every_check_green():
     fake = FakeGoogle()
     store = boot(fake)
     store.create_first_leader(username="leader1", password="harbour-82",
-                              display_name_zh="陳大文", unit="港島第八十二旅童軍團")
+                              display_name_zh="陳大文", unit="香港童軍總會荃灣第7旅")
     store.insert("users", {"role": "scout", "username": "scout01", "display_name_zh": "王小明",
                            "patrol": "Tiger", "status": "active"})
 

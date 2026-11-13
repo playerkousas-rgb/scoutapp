@@ -121,6 +121,9 @@ def create_app(config: dict | None = None) -> Flask:
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=os.environ.get("COOKIE_SECURE", "false").lower() == "true",
+        # Preview-only escape hatch. Production cookies work without putting a
+        # bearer session token in links, logs, browser history or referrers.
+        ALLOW_URL_SESSION=os.environ.get("ALLOW_URL_SESSION", "false").lower() == "true",
         MAX_CONTENT_LENGTH=6 * 1024 * 1024,  # photo evidence cap
         # AI card pictures (個人檔案 → 生成我的卡圖): the leader sets one shared
         # Gemini key in the hosting environment; scouts never see it.
@@ -162,6 +165,7 @@ def create_app(config: dict | None = None) -> Flask:
             "profile_setup": profile_setup,
             "profile_setup_required": profile_setup_required,
             "settings": store.settings_cached(),
+            "uses_patrols": bool(store.settings_cached().get("patrols")),
             "asset_v": asset_v,
             # Templates never see password columns — only the public view.
             "user": public_user(g.get("user")),
@@ -195,9 +199,11 @@ def create_app(config: dict | None = None) -> Flask:
         same token is therefore also accepted (and carried along) as `?sid=…`,
         which works in any frame, on any device, with cookies switched off.
         """
-        token = (request.values.get("sid")       # ?sid=… or a hidden form field
-                 or request.headers.get("X-Session-Token", "")
-                 or request.cookies.get("scout_sid", ""))
+        token = request.cookies.get("scout_sid", "")
+        if app.config.get("ALLOW_URL_SESSION"):
+            token = (request.values.get("sid")       # preview-only ?sid=… / hidden field
+                     or request.headers.get("X-Session-Token", "")
+                     or token)
         g.sid = token
         g.sid_from_url = bool(token) and not request.cookies.get("scout_sid")
         g.user = auth_module.user_from_request(store, request, token=token)
@@ -216,7 +222,7 @@ def create_app(config: dict | None = None) -> Flask:
 
     def url_for(endpoint, **values):          # noqa: F811  (shadow on purpose)
         url = _flask_url_for(endpoint, **values)
-        token = g.get("sid") if hasattr(g, "sid") else ""
+        token = g.get("sid") if (app.config.get("ALLOW_URL_SESSION") and hasattr(g, "sid")) else ""
         if token and endpoint != "static" and not url.startswith(("http://", "https://")):
             if "sid=" not in url:
                 url += ("&" if "?" in url else "?") + "sid=" + token
@@ -238,12 +244,16 @@ def create_app(config: dict | None = None) -> Flask:
         if response.mimetype == "text/html":
             response.headers["Cache-Control"] = "no-store, must-revalidate"
             response.headers["Pragma"] = "no-cache"
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         return response
 
     @app.after_request
     def carry_token(response):
         """Redirects must carry the token too, or a form post drops the session."""
-        token = g.get("sid") if hasattr(g, "sid") else ""
+        token = g.get("sid") if (app.config.get("ALLOW_URL_SESSION") and hasattr(g, "sid")) else ""
         if token:
             location = response.headers.get("Location", "")
             if location.startswith("/") and "sid=" not in location:
@@ -309,6 +319,20 @@ def create_app(config: dict | None = None) -> Flask:
             return render_template("health.html", data=payload, on_sheets=on_sheets,
                                    setup=setup_health_checks(store, counts, on_sheets))
         return payload
+
+    @app.get("/manifest.webmanifest")
+    def manifest():
+        from flask import send_from_directory
+
+        return send_from_directory(app.static_folder, "manifest.webmanifest", mimetype="application/manifest+json")
+
+    @app.get("/icons/<path:filename>")
+    def site_icon(filename: str):
+        from flask import send_from_directory
+
+        response = send_from_directory(os.path.join(app.static_folder, "icons"), filename)
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
 
     @app.get("/img/badges/<path:filename>")
     def badge_art(filename: str):

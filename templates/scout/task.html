@@ -33,8 +33,8 @@
     <div class="cave-invite">
       <div class="cave-invite-text">
         <strong>🕯️ {{ L('第 4 項的遊戲：童軍歷史山洞', 'Item 4\u2019s game — the cave of Scout history') }}</strong>
-        <span class="small">{{ L('四段壁畫、50 題 — 壁畫會先交代那一組題目要用的資料，之後在石室逐題作答；答錯會走入死路，死路會再講一次，然後回頭再選。',
-                                  'Four walls and fifty questions: each wall teaches what its group asks about, then the chamber asks one question at a time. A wrong answer leads to a dead end, which tells the story again — then you choose once more.') }}</span>
+        <span class="small">{{ L('四段壁畫、' ~ (task.config_json.get('questions', []) | length) ~ ' 題 — 壁畫會先交代那一組題目要用的資料，之後在石室逐題作答；答錯會走入死路，死路會再講一次，然後回頭再選。',
+                                  'Four walls and ' ~ (task.config_json.get('questions', []) | length) ~ ' questions: each wall teaches what its group asks about, then the chamber asks one question at a time. A wrong answer leads to a dead end, which tells the story again — then you choose once more.') }}</span>
       </div>
       <a class="btn primary" href="{{ url_for('scout_routes.task_cave', task_id=task.id) }}">
         ▶ {{ L('進入山洞歷險', 'Enter the cave') }}</a>

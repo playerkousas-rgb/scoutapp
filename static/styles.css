@@ -1582,11 +1582,29 @@ body.scene-body .topbar { display: none; }
 
 .card-logo { width: min(230px, 62%); height: auto; margin: 0 auto .6rem; display: block; }
 
+/* Temporary neutral brand while the unit's official logo is being designed. */
+.tw7-mark {
+  display: inline-grid; place-items: center; box-sizing: border-box;
+  min-width: 3.1rem; aspect-ratio: 1; padding: .25rem;
+  border: 2px solid currentColor; border-radius: 28%;
+  background: #fff; color: var(--green-800);
+  font: 900 .92rem/1 system-ui, sans-serif; letter-spacing: -.04em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .14);
+}
+.brand .tw7-mark { width: 34px; height: 34px; min-width: 34px; color: var(--green-800); }
+.card-logo.tw7-mark { width: 86px; height: 86px; min-width: 86px; font-size: 1.45rem; margin-bottom: 1rem; }
+.scene-logo .tw7-mark { width: clamp(64px, 7vw, 88px); font-size: clamp(.9rem, 1.4vw, 1.15rem); }
+.auth-brand { display: flex; align-items: center; gap: 1rem; }
+.auth-brand .tw7-mark { width: 72px; min-width: 72px; font-size: 1.2rem; }
+.login-neutral { background: radial-gradient(circle at top, #eef7f0, var(--paper)); }
+.member-login-grid .name-tile { min-height: 4rem; }
+
 @media (max-width: 900px) {
   .scene-hud.tr { top: .6rem; right: .7rem; padding: .5rem .1rem .5rem .8rem; }
   .scene-logo { padding: .22rem .42rem; border-radius: 10px; }
   .scene-logo img { width: clamp(70px, 20vw, 104px); }
   .brand-logo { height: 28px; }
+  .brand .tw7-mark { width: 28px; min-width: 28px; height: 28px; font-size: .78rem; }
 }
 
 /* ── the demo accounts on the leaders' card ────────────────────────────────
@@ -2381,7 +2399,7 @@ body.is-game main { padding-top: 6px; }
 }
 @media (max-width: 560px) {
   .topbar-inner { gap: .45rem; padding: .5rem .6rem; }
-  .brand-text { display: none; }              /* the 82HKG logo carries the brand */
+  .brand-text { display: none; }              /* the compact TW7 mark carries the brand */
   .tabbar a { padding: .45rem .5rem; font-size: .82rem; }
   .cave-when { font-size: .8rem; }
   .cave-what { font-size: .86rem; }

@@ -22,8 +22,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ L('童軍進度平台', 'Scout Progress Platform') }}{% endblock %} · {{ L(settings.unit_name_zh, settings.unit_name_en) }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v={{ asset_v('styles.css') }}">
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/brand/favicon.png') }}">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/brand/favicon.png') }}">
+  <link rel="icon" href="{{ url_for('site_icon', filename='favicon.ico') }}" sizes="any">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('site_icon', filename='favicon-16.png') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('site_icon', filename='favicon-32.png') }}">
+  <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="{{ url_for('site_icon', filename='apple-touch-icon.png') }}">
+  <link rel="manifest" href="{{ url_for('manifest') }}">
+  <meta name="theme-color" content="#24533F">
+  <meta property="og:image" content="{{ url_for('site_icon', filename='og-image.png', _external=True) }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <script>window.__scoutSoundDefault = {{ 'true' if settings.ui_sound else 'false' }};</script>
   {# a page that needs a few rules of its own (the adventure's stage board) #}
   {% block head %}{% endblock %}
@@ -34,8 +41,7 @@
   <header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="{{ url_for('scout_routes.home') if user.role == 'scout' else url_for('leader_routes.overview') }}">
-        <img class="brand-logo" src="{{ url_for('static', filename='img/brand/82hkg-logo.webp') }}"
-             width="900" height="483" alt="{{ L(settings.unit_name_zh, settings.unit_name_en) }}">
+        <span class="tw7-mark brand-logo" aria-label="TW7">TW7</span>
         <span class="brand-text">
           <strong>{{ L(settings.unit_name_zh, settings.unit_name_en) }}</strong>
           <small>{{ L('童軍進度平台', 'Scout Progress Platform') }}</small>
@@ -101,7 +107,7 @@
       <div>
         <div class="hud-name">{{ name_of(user) }}</div>
         <div class="hud-sub">
-          {% if user.role == 'scout' %}{{ patrol_name(user.patrol) }} · {{ user.scout_no or user.username }}
+          {% if user.role == 'scout' %}{% if uses_patrols %}{{ patrol_name(user.patrol) }} · {% endif %}{{ user.scout_no or user.username }}
           {% else %}{{ L('領袖', 'Leader') }} · {{ user.unit or L(settings.unit_name_zh, settings.unit_name_en) }}{% endif %}
         </div>
       </div>
@@ -147,7 +153,7 @@
         <input type="hidden" name="return_to" value="{{ request.path }}">
         <label class="field"><span>{{ L('職位', 'Position') }}</span>
           <input type="text" name="position" required maxlength="40" value="{{ profile_setup.position_edit }}"
-                 placeholder="{{ L('例如：小隊長、副小隊長、隊員', 'e.g. Patrol Leader, Assistant Patrol Leader, Patrol member') }}">
+                 placeholder="{{ L('例如：成員、助理領袖', 'e.g. Member, Assistant Leader') if not uses_patrols else L('例如：小隊長、副小隊長、隊員', 'e.g. Patrol Leader, Assistant Patrol Leader, Patrol member') }}">
         </label>
         <label class="field"><span>{{ L('興趣', 'Interests') }}</span>
           <input type="text" name="interests" required maxlength="120" value="{{ profile_setup.interests }}"
