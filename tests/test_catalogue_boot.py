@@ -131,6 +131,32 @@ def test_the_two_writes_are_whole_tables_not_rows(monkeypatch):
     assert all("!A2:" in url or "settings!" in url for url in puts), puts
 
 
+def test_one_boot_reconciles_a_concurrent_writer_before_it_returns():
+    """The last cold start to write must also heal the race in that same boot."""
+    fake = FakeGoogle()
+    driver = SheetsDriver("sheet-live", {"client_email": "svc@example.iam.gserviceaccount.com",
+                                         "private_key": "x", "project_id": "p"})
+    driver._api = fake.api
+    driver.ensure_schema()
+    store = Store(driver=driver, config={"demo_login": False, "seed_demo": False,
+                                         "data_dir": "/tmp"})
+    write = store.insert_many
+
+    def raced(collection, records):
+        saved = write(collection, records)
+        if collection in {"badges", "tasks"}:
+            # Another cold start observed the same empty catalogue and wrote
+            # its block immediately after this one.
+            write(collection, [{**row, "id": f"race-{row['id']}"} for row in saved])
+        return saved
+
+    store.insert_many = raced
+    assert store.ensure_catalog()
+    assert len(store.list("badges")) == 5
+    assert len(store.list("tasks")) == 17
+    assert store.catalog_duplicates() == {"badges": 0, "tasks": 0}
+
+
 def test_duplicate_catalogue_rows_are_merged_and_repointed(monkeypatch):
     """兩次冷啟動撞在一起 → 獎章與任務各多一份；下一次啟動要自動合併。"""
     fake = FakeGoogle()

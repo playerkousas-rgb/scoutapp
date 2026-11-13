@@ -465,6 +465,27 @@ class Store:
         return True                                 # 記錄只能減低撞在一起的機會，
         #                                             真正的保險是 settle_catalog()
 
+    def catalog_duplicates(self) -> dict[str, int]:
+        """Count duplicate built-in codes without changing the Sheet.
+
+        Leaders may add as many custom rows as they need, so total row counts
+        cannot diagnose a bad first boot. Built-in badge/task codes, however,
+        must be unique. This powers `/health` and the leader setup check.
+        """
+        badge_codes = {str(badge["code"]) for badge in SEED_BADGES}
+        task_codes = {str(task["code"]) for badge in SEED_BADGES for task in badge["tasks"]}
+
+        def extra(collection: str, known: set[str]) -> int:
+            counts: dict[str, int] = {}
+            for row in self.list(collection):
+                code = str(row.get("code") or "")
+                if code in known:
+                    counts[code] = counts.get(code, 0) + 1
+            return sum(max(0, count - 1) for count in counts.values())
+
+        return {"badges": extra("badges", badge_codes),
+                "tasks": extra("tasks", task_codes)}
+
     def settle_catalog(self) -> dict:
         """合併重複的內建獎章／任務（併發首次啟動可能各寫一次）。
 
@@ -772,6 +793,13 @@ class Store:
         if new_tasks:
             self.insert_many("tasks", new_tasks)
             added = True
+
+        # The lease above is deliberately lightweight: Google Sheets has no
+        # compare-and-swap primitive, so two cold starts can both read an empty
+        # Sheet before either lease write becomes visible. Whichever start
+        # writes last also performs this final reconciliation, making one boot
+        # sufficient instead of requiring a later Redeploy to heal 10/34 rows.
+        self.settle_catalog()
         return added
 
     # --- demo seed ----------------------------------------------------------
